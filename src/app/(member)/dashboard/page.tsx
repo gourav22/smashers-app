@@ -14,6 +14,7 @@ interface UserProfile {
   email: string;
   role: string;
   balance: number;
+  sports_played: string[];
   badminton_elo: number;
   badminton_grade: 'A' | 'B' | 'C' | 'D';
   badminton_games_played: number;
@@ -144,12 +145,17 @@ export default function DashboardPage() {
             <h1 className="text-2xl font-bold text-gray-900">
               {process.env.NEXT_PUBLIC_CLUB_NAME || 'Smashers Club'}
             </h1>
-            <button
-              onClick={handleLogout}
-              className="text-gray-600 hover:text-gray-900"
-            >
-              Logout
-            </button>
+            <div className="flex gap-4 items-center">
+              <Link href="/settings" className="text-gray-600 hover:text-gray-900">
+                ⚙️ Settings
+              </Link>
+              <button
+                onClick={handleLogout}
+                className="text-gray-600 hover:text-gray-900"
+              >
+                Logout
+              </button>
+            </div>
           </div>
         </div>
       </header>
@@ -176,8 +182,9 @@ export default function DashboardPage() {
         </motion.div>
 
         {/* Sport Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+        <div className={`grid grid-cols-1 md:grid-cols-2 ${user.sports_played.length === 2 ? 'lg:grid-cols-3' : 'lg:grid-cols-2'} gap-6 mb-8`}>
           {/* Badminton Card */}
+          {user.sports_played.includes('badminton') && (
           <motion.div
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
@@ -223,8 +230,10 @@ export default function DashboardPage() {
               </div>
             </div>
           </motion.div>
+          )}
 
           {/* Cricket Card */}
+          {user.sports_played.includes('cricket') && (
           <motion.div
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
@@ -270,6 +279,7 @@ export default function DashboardPage() {
               </div>
             </div>
           </motion.div>
+          )}
 
           {/* Balance Card */}
           <motion.div
