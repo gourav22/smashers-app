@@ -1,36 +1,94 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Sports Club Management System
 
-## Getting Started
+A complete web app for managing badminton and cricket club operations with ELO ratings, slot booking, and match tracking.
 
-First, run the development server:
+## 🚀 Quick Start
 
+### Prerequisites
+- Node.js 18+
+- Supabase account
+- npm or yarn
+
+### Setup (5 minutes)
+
+1. **Install dependencies:**
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm install
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+2. **Configure Supabase:**
+   - Create project at https://supabase.com
+   - Run `supabase-setup.sql` in SQL Editor
+   - Run `fix-rls-policies.sql` and `fix-user-insert-policy.sql`
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+3. **Set environment variables:**
+```bash
+cp .env.local.example .env.local
+# Add your Supabase URL and keys
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+4. **Start development server:**
+```bash
+npm run dev
+```
 
-## Learn More
+5. **Visit:** http://localhost:3000
 
-To learn more about Next.js, take a look at the following resources:
+### Make Yourself Admin
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+```sql
+-- In Supabase SQL Editor
+UPDATE public.users
+SET role = 'super_admin'
+WHERE email = 'your-email@example.com';
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+See `ADMIN-SETUP.md` for detailed role management.
 
-## Deploy on Vercel
+---
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## ✨ Features
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+### Core Features
+- 🎾 **Separate ELO Ratings** - Independent tracking for badminton & cricket
+- 📅 **Slot Booking** - €4 per booking with balance management
+- ⚔️ **Match Tracking** - Create matches, admin approval required
+- 🏆 **Leaderboard** - Sport-specific rankings with grades (A/B/C/D)
+- 🎖️ **Achievements** - 13 unlockable badges
+- 📊 **Dashboard** - Animated stats with win streaks
+
+### Admin Features
+- 👥 **Member Management** - Edit users, roles, balances
+- 🎯 **Slot Creation** - Easy UI for creating slots
+- ⚖️ **Match Approval** - Prevent score disputes
+- 📈 **Analytics** - Club stats
+
+---
+
+## 📖 Documentation
+
+- **ADMIN-SETUP.md** - Role management guide
+- **TESTING-GUIDE.md** - Local testing
+- **DEPLOYMENT.md** - Production deployment
+- **SETUP_INSTRUCTIONS.md** - Supabase setup
+
+---
+
+## 🏗️ Tech Stack
+
+- Next.js 14, TypeScript, Tailwind CSS
+- Supabase (PostgreSQL + Auth)
+- Framer Motion
+- Vercel deployment
+
+---
+
+## 💰 Cost
+
+€25/month for 200-1000 users (10x cheaper than Firebase)
+
+---
+
+**Status:** ✅ Production Ready
+
+Built with ❤️ for sports clubs\!
