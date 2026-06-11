@@ -110,3 +110,25 @@ export function getGradeEmoji(grade: 'A' | 'B' | 'C' | 'D'): string {
   };
   return emojis[grade];
 }
+
+// Simplified ELO calculation that returns just the changes
+export function calculateSimpleElo(
+  team1Elos: number[],
+  team2Elos: number[],
+  team1Score: number,
+  team2Score: number
+): { team1Change: number; team2Change: number } {
+  // Calculate team averages
+  const team1Avg = team1Elos.reduce((a, b) => a + b, 0) / team1Elos.length;
+  const team2Avg = team2Elos.reduce((a, b) => a + b, 0) / team2Elos.length;
+
+  // Determine winner
+  const team1Won = team1Score > team2Score ? 1 : 0;
+  const team2Won = team2Score > team1Score ? 1 : 0;
+
+  // Calculate changes
+  const team1Change = calculateEloChange(team1Avg, team2Avg, team1Won);
+  const team2Change = calculateEloChange(team2Avg, team1Avg, team2Won);
+
+  return { team1Change, team2Change };
+}

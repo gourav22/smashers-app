@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
-import { calculateMatchElo, calculateGrade } from '@/lib/elo';
+import { calculateSimpleElo, calculateGrade } from '@/lib/elo';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
@@ -80,12 +80,10 @@ export async function POST(request: Request) {
     const team2Players = players.filter((p) => match.team2.includes(p.id));
 
     const sport = match.sport; // 'badminton' or 'cricket'
-    const eloChanges = calculateMatchElo(
-      team1Players.map((p) => ({ elo: sport === 'badminton' ? p.badminton_elo : p.cricket_elo })),
-      team2Players.map((p) => ({ elo: sport === 'badminton' ? p.badminton_elo : p.cricket_elo })),
-      match.team1_score,
-      match.team2_score
-    );
+    const team1Elos = team1Players.map((p) => sport === 'badminton' ? p.badminton_elo : p.cricket_elo);
+    const team2Elos = team2Players.map((p) => sport === 'badminton' ? p.badminton_elo : p.cricket_elo);
+
+    const eloChanges = calculateSimpleElo(team1Elos, team2Elos, match.team1_score, match.team2_score);
 
     const team1Won = match.team1_score > match.team2_score;
 
