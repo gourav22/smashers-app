@@ -14,9 +14,9 @@ interface Member {
   role: string;
   balance: number;
   badminton_elo: number;
-  badminton_grade: string;
+  badminton_grade: 'A' | 'B' | 'C' | 'D';
   cricket_elo: number;
-  cricket_grade: string;
+  cricket_grade: 'A' | 'B' | 'C' | 'D';
   created_at: string;
 }
 
