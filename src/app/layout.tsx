@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
+import { RegisterServiceWorker } from "./register-sw";
+import { ThemeProvider } from "@/components/ThemeProvider";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -16,7 +18,6 @@ export const metadata: Metadata = {
   title: "Smashers Club - Sports Management",
   description: "Sports club management system for badminton and cricket with ELO rankings",
   manifest: "/manifest.json",
-  themeColor: "#3B82F6",
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
@@ -38,6 +39,10 @@ export const metadata: Metadata = {
   },
 };
 
+export const viewport = {
+  themeColor: "#3B82F6",
+};
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -53,7 +58,12 @@ export default function RootLayout({
         <link rel="apple-touch-icon" href="/icons/icon-192x192.png" />
         <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0, viewport-fit=cover" />
       </head>
-      <body className="min-h-full flex flex-col">{children}</body>
+      <body className="min-h-full flex flex-col">
+        <ThemeProvider>
+          <RegisterServiceWorker />
+          {children}
+        </ThemeProvider>
+      </body>
     </html>
   );
 }

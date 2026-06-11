@@ -52,10 +52,21 @@ See `ADMIN-SETUP.md` for detailed role management.
 ### Core Features
 - 🎾 **Separate ELO Ratings** - Independent tracking for badminton & cricket
 - 📅 **Slot Booking** - €4 per booking with balance management
+- 💳 **Member Subscriptions** - Regular vs adhoc members with auto-booking
 - ⚔️ **Match Tracking** - Create matches, admin approval required
 - 🏆 **Leaderboard** - Sport-specific rankings with grades (A/B/C/D)
 - 🎖️ **Achievements** - 13 unlockable badges
 - 📊 **Dashboard** - Animated stats with win streaks
+
+### PWA Features (NEW!)
+- 📱 **Add to Home Screen** - Install as native app
+- 🔔 **Push Notifications** - Match updates, achievements, low balance alerts
+- 📴 **Offline Support** - View cached pages without internet
+- 🔄 **Pull-to-Refresh** - Native mobile gesture
+- 🎨 **Dark Mode** - Auto/light/dark theme options
+- 📲 **Share Results** - Share matches to WhatsApp/social media
+- 📳 **Haptic Feedback** - Vibration on key actions
+- ⚡ **Skeleton Screens** - Better loading states
 
 ### Admin Features
 - 👥 **Member Management** - Edit users, roles, balances
@@ -71,6 +82,8 @@ See `ADMIN-SETUP.md` for detailed role management.
 - **TESTING-GUIDE.md** - Local testing
 - **DEPLOYMENT.md** - Production deployment
 - **SETUP_INSTRUCTIONS.md** - Supabase setup
+- **PWA-SETUP.md** - Progressive Web App features & setup
+- **SUBSCRIPTION-SYSTEM.md** - Member subscription system guide
 
 ---
 

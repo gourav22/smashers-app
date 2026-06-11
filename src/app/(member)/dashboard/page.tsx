@@ -40,9 +40,10 @@ export default function DashboardPage() {
 
   const loadUser = async () => {
     try {
-      const { data: authData } = await supabase.auth.getUser();
+      const { data: authData, error: authError } = await supabase.auth.getUser();
 
-      if (!authData.user) {
+      if (authError || !authData.user) {
+        console.error('Auth error:', authError);
         router.push('/login');
         return;
       }
@@ -65,27 +66,38 @@ export default function DashboardPage() {
               email: authData.user.email || '',
               name: authData.user.user_metadata?.name || authData.user.email?.split('@')[0] || 'User',
               phone: authData.user.user_metadata?.phone || null,
+              sports_played: ['badminton', 'cricket'], // Default to both sports
             })
             .select()
             .single();
 
           if (createError) {
             console.error('Error creating profile:', createError);
-            throw createError;
+            setLoading(false);
+            alert('Error creating profile. Please check console.');
+            return;
           }
 
           setUser(newProfile);
+          setLoading(false);
           return;
         }
-        throw error;
+
+        // Other error - show and stop loading
+        setLoading(false);
+        alert(`Error loading profile: ${error.message}`);
+        return;
+      }
+
+      // Ensure sports_played has a default value
+      if (!profile.sports_played || profile.sports_played.length === 0) {
+        profile.sports_played = ['badminton', 'cricket'];
       }
 
       setUser(profile);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error loading user:', error);
-      alert('Error loading your profile. Please try logging in again.');
-      await supabase.auth.signOut();
-      router.push('/login');
+      alert(`Error: ${error.message || 'Unknown error'}`);
     } finally {
       setLoading(false);
     }
@@ -182,9 +194,9 @@ export default function DashboardPage() {
         </motion.div>
 
         {/* Sport Stats Cards */}
-        <div className={`grid grid-cols-1 md:grid-cols-2 ${user.sports_played.length === 2 ? 'lg:grid-cols-3' : 'lg:grid-cols-2'} gap-6 mb-8`}>
+        <div className={`grid grid-cols-1 md:grid-cols-2 ${user.sports_played?.length === 2 ? 'lg:grid-cols-3' : 'lg:grid-cols-2'} gap-6 mb-8`}>
           {/* Badminton Card */}
-          {user.sports_played.includes('badminton') && (
+          {user.sports_played?.includes('badminton') && (
           <motion.div
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
@@ -233,7 +245,7 @@ export default function DashboardPage() {
           )}
 
           {/* Cricket Card */}
-          {user.sports_played.includes('cricket') && (
+          {user.sports_played?.includes('cricket') && (
           <motion.div
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
@@ -350,10 +362,16 @@ export default function DashboardPage() {
           <h3 className="text-xl font-semibold text-gray-900 mb-4">🌟 Quick Actions</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             <Link
+              href="/subscription"
+              className="bg-purple-600 text-white p-4 rounded-lg text-center font-semibold hover:bg-purple-700 transition"
+            >
+              📅 Membership
+            </Link>
+            <Link
               href="/slots"
               className="bg-blue-600 text-white p-4 rounded-lg text-center font-semibold hover:bg-blue-700 transition"
             >
-              📅 Book Next Slot
+              🎾 Book Slot
             </Link>
             <Link
               href="/matches/create"
