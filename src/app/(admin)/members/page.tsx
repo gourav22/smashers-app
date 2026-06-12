@@ -20,6 +20,7 @@ interface Member {
   created_at: string;
   subscription_count?: number;
   member_type?: string;
+  sports_played?: string[];
 }
 
 export default function MembersPage() {
@@ -72,7 +73,7 @@ export default function MembersPage() {
     try {
       const { data, error } = await supabase
         .from('users')
-        .select('id, name, email, phone, role, balance, badminton_elo, badminton_grade, cricket_elo, cricket_grade, created_at')
+        .select('id, name, email, phone, role, balance, badminton_elo, badminton_grade, cricket_elo, cricket_grade, created_at, sports_played')
         .order('created_at', { ascending: false });
 
       if (error) throw error;
@@ -257,6 +258,7 @@ export default function MembersPage() {
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Name</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Email</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Type</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Sports</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Role</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Balance</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Badminton</th>
@@ -267,12 +269,26 @@ export default function MembersPage() {
               <tbody className="bg-white divide-y divide-gray-200">
                 {filteredMembers.map((member) => (
                   <tr key={member.id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 whitespace-nowrap">
+                    <td className="px-6 py-4">
                       <div className="text-sm font-medium text-gray-900">{member.name}</div>
-                      <div className="text-xs text-gray-500">{member.phone || 'No phone'}</div>
+                      <div className="text-xs text-gray-500 mt-1">
+                        {member.phone && (
+                          <div className="flex items-center gap-1">
+                            <span>📱</span>
+                            <a href={`tel:${member.phone}`} className="hover:text-blue-600">
+                              {member.phone}
+                            </a>
+                          </div>
+                        )}
+                      </div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-900">{member.email}</div>
+                    <td className="px-6 py-4">
+                      <div className="text-sm text-gray-900 flex items-center gap-1">
+                        <span>📧</span>
+                        <a href={`mailto:${member.email}`} className="hover:text-blue-600">
+                          {member.email}
+                        </a>
+                      </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span
@@ -291,12 +307,25 @@ export default function MembersPage() {
                       )}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="flex gap-1">
+                        {member.sports_played?.includes('badminton') && (
+                          <span className="text-lg" title="Badminton">🏸</span>
+                        )}
+                        {member.sports_played?.includes('cricket') && (
+                          <span className="text-lg" title="Cricket">🏏</span>
+                        )}
+                        {(!member.sports_played || member.sports_played.length === 0) && (
+                          <span className="text-xs text-gray-400">None</span>
+                        )}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
                       <span
                         className={`px-2 py-1 text-xs font-semibold rounded-full ${
                           member.role === 'super_admin'
                             ? 'bg-red-100 text-red-800'
                             : member.role === 'slot_manager'
-                            ? 'bg-purple-100 text-purple-800'
+                            ? 'bg-purple-100 text-purple-808'
                             : 'bg-gray-100 text-gray-800'
                         }`}
                       >

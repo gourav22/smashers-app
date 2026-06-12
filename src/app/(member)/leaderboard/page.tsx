@@ -25,6 +25,7 @@ export default function LeaderboardPage() {
   const [userId, setUserId] = useState<string | null>(null);
   const [sport, setSport] = useState<'badminton' | 'cricket'>('badminton');
   const [loading, setLoading] = useState(true);
+  const [userSports, setUserSports] = useState<string[]>(['badminton', 'cricket']);
 
   useEffect(() => {
     loadLeaderboard();
@@ -40,6 +41,21 @@ export default function LeaderboardPage() {
       }
 
       setUserId(authData.user.id);
+
+      // Get user's sport preferences
+      const { data: profile } = await supabase
+        .from('users')
+        .select('sports_played')
+        .eq('id', authData.user.id)
+        .single();
+
+      const sportsPlayed = profile?.sports_played || ['badminton', 'cricket'];
+      setUserSports(sportsPlayed);
+
+      // Set default sport to first one user plays
+      if (!sportsPlayed.includes(sport)) {
+        setSport(sportsPlayed[0] as 'badminton' | 'cricket');
+      }
 
       const { data, error } = await supabase
         .from('users')
@@ -82,27 +98,45 @@ export default function LeaderboardPage() {
       <main className="max-w-7xl mx-auto px-4 py-8 sm:px-6 lg:px-8">
         {/* Sport Tabs */}
         <div className="flex gap-2 mb-8">
-          <button
-            onClick={() => setSport('badminton')}
-            className={`px-6 py-3 rounded-lg font-semibold text-lg transition ${
-              sport === 'badminton'
-                ? 'bg-blue-600 text-white shadow-lg'
-                : 'bg-white text-gray-700 hover:bg-gray-50'
-            }`}
-          >
-            🏸 Badminton
-          </button>
-          <button
-            onClick={() => setSport('cricket')}
-            className={`px-6 py-3 rounded-lg font-semibold text-lg transition ${
-              sport === 'cricket'
-                ? 'bg-blue-600 text-white shadow-lg'
-                : 'bg-white text-gray-700 hover:bg-gray-50'
-            }`}
-          >
-            🏏 Cricket
-          </button>
+          {userSports.includes('badminton') && (
+            <button
+              onClick={() => setSport('badminton')}
+              className={`px-6 py-3 rounded-lg font-semibold text-lg transition ${
+                sport === 'badminton'
+                  ? 'bg-blue-600 text-white shadow-lg'
+                  : 'bg-white text-gray-700 hover:bg-gray-50'
+              }`}
+            >
+              🏸 Badminton
+            </button>
+          )}
+          {userSports.includes('cricket') && (
+            <button
+              onClick={() => setSport('cricket')}
+              className={`px-6 py-3 rounded-lg font-semibold text-lg transition ${
+                sport === 'cricket'
+                  ? 'bg-blue-600 text-white shadow-lg'
+                  : 'bg-white text-gray-700 hover:bg-gray-50'
+              }`}
+            >
+              🏏 Cricket
+            </button>
+          )}
         </div>
+
+        {userSports.length === 0 && (
+          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-6 text-center mb-8">
+            <p className="text-yellow-800 mb-4">
+              You haven't selected any sports yet. Please update your preferences.
+            </p>
+            <Link
+              href="/settings"
+              className="inline-block bg-blue-600 text-white px-6 py-2 rounded-lg font-semibold hover:bg-blue-700"
+            >
+              Go to Settings
+            </Link>
+          </div>
+        )}
 
         {/* Leaderboard Table */}
         <div className="bg-white rounded-lg shadow overflow-hidden">
