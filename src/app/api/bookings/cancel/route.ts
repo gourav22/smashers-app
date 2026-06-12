@@ -77,7 +77,7 @@ export async function POST(request: NextRequest) {
     // 1. Someone new books the slot (replacement found), OR
     // 2. Game time passes without replacement (no refund - forfeited)
 
-    await handleWaitlistAndRefund(booking.slot_id, booking.slot_id, booking.user_id, slotDate, booking.amount_paid);
+    await handleWaitlistAndRefund(booking.id, booking.slot_id, booking.user_id, slotDate, booking.amount_paid);
 
     return NextResponse.json({
       success: true,
@@ -104,14 +104,21 @@ async function handleWaitlistAndRefund(bookingId: string, slotId: string, cancel
   // Create pending refund that expires at game time
   console.log('Creating pending refund for user:', cancelledUserId, 'expires at:', gameDate.toISOString());
 
-  await supabase.from('pending_refunds').insert({
+  const { error: refundInsertError } = await supabase.from('pending_refunds').insert({
     user_id: cancelledUserId,
     slot_id: slotId,
     booking_id: bookingId,
     amount: amount,
     reason: 'cancelled_awaiting_replacement',
+    status: 'pending',
     expires_at: gameDate.toISOString(), // Expires at game time, not 12 hours
   });
+
+  if (refundInsertError) {
+    console.error('⚠️ Error creating pending refund:', refundInsertError);
+  } else {
+    console.log('✅ Pending refund created for booking:', bookingId);
+  }
 
   // Get waitlist bookings sorted by created_at
   const { data: waitlistBookings } = await supabase
