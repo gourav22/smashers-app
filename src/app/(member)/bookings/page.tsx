@@ -145,6 +145,17 @@ export default function BookingsPage() {
     try {
       const { data: authData } = await supabase.auth.getUser();
 
+      // Check if user has sufficient balance
+      const { data: userData } = await supabase
+        .from('users')
+        .select('balance')
+        .eq('id', authData.user!.id)
+        .single();
+
+      if (!userData || userData.balance < booking.amount_paid) {
+        throw new Error('Insufficient balance to restore booking');
+      }
+
       // Re-add user to slot
       const updatedUserIds = [...booking.slots.booked_user_ids, authData.user!.id];
 
@@ -308,26 +319,28 @@ export default function BookingsPage() {
           </div>
         )}
 
-        {/* Cancelled Bookings with Pending Refunds */}
+        {/* Cancelled Bookings */}
         {cancelledBookings.length > 0 && (
           <div className="mb-8">
             <h2 className="text-xl font-semibold text-gray-900 mb-4">
-              ❌ Cancelled - Awaiting Refund ({cancelledBookings.length})
+              ❌ Cancelled Bookings ({cancelledBookings.length})
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {cancelledBookings.map((booking) => {
                 const refund = pendingRefunds[booking.id];
-                const isRefundPending = refund && refund.status === 'pending';
+                const slotDateTime = new Date(`${booking.slots.date}T${booking.slots.time}`);
+                const isPastSlot = slotDateTime < new Date();
+                const canUndo = !isPastSlot && (!refund || refund.status === 'pending');
 
-                console.log('🔍 Booking:', booking.id, 'Refund:', refund, 'isPending:', isRefundPending);
+                console.log('🔍 Booking:', booking.id, 'Refund:', refund, 'canUndo:', canUndo, 'isPast:', isPastSlot);
 
                 return (
-                  <div key={booking.id} className="bg-white rounded-lg shadow p-6 border-2 border-orange-200">
+                  <div key={booking.id} className="bg-white rounded-lg shadow p-6 border-2 border-gray-200">
                     <div className="flex items-center justify-between mb-3">
                       <span className="text-2xl">
                         {booking.slots.sport === 'badminton' ? '🏸' : '🏏'}
                       </span>
-                      <span className="bg-orange-100 text-orange-800 text-xs px-2 py-1 rounded font-semibold">
+                      <span className="bg-red-100 text-red-800 text-xs px-2 py-1 rounded font-semibold">
                         Cancelled
                       </span>
                     </div>
@@ -346,17 +359,22 @@ export default function BookingsPage() {
                       <p>{booking.slots.time}</p>
                       <p>📍 {booking.slots.location}</p>
 
-                      {refund ? (
+                      {isPastSlot ? (
+                        <div className="mt-3 p-2 bg-gray-50 rounded text-xs">
+                          <p className="font-semibold text-gray-700">⏰ Slot Already Passed</p>
+                          <p className="text-gray-600">No refund - game already happened</p>
+                        </div>
+                      ) : refund ? (
                         refund.status === 'pending' ? (
                           <div className="mt-3 p-2 bg-yellow-50 rounded text-xs">
                             <p className="font-semibold text-yellow-800">⏳ Refund Pending</p>
-                            <p className="text-yellow-700">€{refund.amount} will be refunded when slot fills</p>
+                            <p className="text-yellow-700">€{(refund.amount / 100).toFixed(2)} will be refunded when slot fills</p>
                             <p className="text-yellow-600">Expires: {new Date(refund.expires_at).toLocaleDateString()}</p>
                           </div>
                         ) : refund.status === 'processed' ? (
                           <div className="mt-3 p-2 bg-green-50 rounded text-xs">
                             <p className="font-semibold text-green-800">✅ Refund Processed</p>
-                            <p className="text-green-700">€{refund.amount} refunded</p>
+                            <p className="text-green-700">€{(refund.amount / 100).toFixed(2)} refunded</p>
                           </div>
                         ) : (
                           <div className="mt-3 p-2 bg-red-50 rounded text-xs">
@@ -365,13 +383,14 @@ export default function BookingsPage() {
                           </div>
                         )
                       ) : (
-                        <div className="mt-3 p-2 bg-gray-50 rounded text-xs">
-                          <p className="text-gray-600">No refund record found</p>
+                        <div className="mt-3 p-2 bg-blue-50 rounded text-xs">
+                          <p className="font-semibold text-blue-800">⏳ Awaiting Refund Setup</p>
+                          <p className="text-blue-700">Refund will be processed when slot fills</p>
                         </div>
                       )}
                     </div>
 
-                    {isRefundPending && (
+                    {canUndo && (
                       <button
                         onClick={() => handleUndoCancel(booking)}
                         disabled={undoingId === booking.id}

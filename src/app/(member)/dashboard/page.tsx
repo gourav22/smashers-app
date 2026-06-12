@@ -169,7 +169,6 @@ export default function DashboardPage() {
   }
 
   const badmintonProgress = calculateProgress(user.badminton_elo, user.badminton_grade);
-  const cricketProgress = calculateProgress(user.cricket_elo, user.cricket_grade);
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -217,7 +216,7 @@ export default function DashboardPage() {
         </motion.div>
 
         {/* Sport Stats Cards */}
-        <div className={`grid grid-cols-1 md:grid-cols-2 ${user.sports_played?.length === 2 ? 'lg:grid-cols-3' : 'lg:grid-cols-2'} gap-6 mb-8`}>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
           {/* Badminton Card */}
           {user.sports_played?.includes('badminton') && (
           <motion.div
@@ -261,55 +260,6 @@ export default function DashboardPage() {
                   Matches: {user.badminton_games_played} |
                   W: {user.badminton_wins} |
                   L: {user.badminton_losses}
-                </p>
-              </div>
-            </div>
-          </motion.div>
-          )}
-
-          {/* Cricket Card */}
-          {user.sports_played?.includes('cricket') && (
-          <motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ delay: 0.2, duration: 0.4 }}
-            whileHover={{ scale: 1.02 }}
-            className="bg-white rounded-lg shadow p-6"
-          >
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold text-gray-900">Cricket 🏏</h3>
-              <span className="text-3xl">{getGradeEmoji(user.cricket_grade)}</span>
-            </div>
-            <div className="space-y-3">
-              <div>
-                <p className="text-3xl font-bold" style={{ color: getGradeColor(user.cricket_grade) }}>
-                  <AnimatedCounter value={user.cricket_elo} /> ELO
-                </p>
-                <p className="text-sm text-gray-600">Grade {user.cricket_grade}</p>
-              </div>
-              {user.cricket_grade !== 'A' && (
-                <>
-                  <div className="w-full bg-gray-200 rounded-full h-2">
-                    <div
-                      className="h-2 rounded-full transition-all"
-                      style={{
-                        width: `${cricketProgress.progress}%`,
-                        backgroundColor: getGradeColor(user.cricket_grade),
-                      }}
-                    ></div>
-                  </div>
-                  <p className="text-xs text-gray-600">
-                    {cricketProgress.needed} pts to Grade {
-                      user.cricket_grade === 'D' ? 'C' : user.cricket_grade === 'C' ? 'B' : 'A'
-                    } 🎯
-                  </p>
-                </>
-              )}
-              <div className="pt-2 border-t">
-                <p className="text-sm text-gray-600">
-                  Matches: {user.cricket_games_played} |
-                  W: {user.cricket_wins} |
-                  L: {user.cricket_losses}
                 </p>
               </div>
             </div>
