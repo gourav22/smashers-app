@@ -29,9 +29,19 @@ interface UserProfile {
   longest_win_streak: number;
 }
 
+interface Transaction {
+  id: string;
+  type: string;
+  amount: number;
+  balance_after: number;
+  created_at: string;
+  metadata: any;
+}
+
 export default function DashboardPage() {
   const router = useRouter();
   const [user, setUser] = useState<UserProfile | null>(null);
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -95,6 +105,18 @@ export default function DashboardPage() {
       }
 
       setUser(profile);
+
+      // Load recent transactions
+      const { data: transactionsData } = await supabase
+        .from('transactions')
+        .select('*')
+        .eq('user_id', authData.user.id)
+        .order('created_at', { ascending: false })
+        .limit(10);
+
+      if (transactionsData) {
+        setTransactions(transactionsData);
+      }
     } catch (error: any) {
       console.error('Error loading user:', error);
       alert(`Error: ${error.message || 'Unknown error'}`);
@@ -322,6 +344,47 @@ export default function DashboardPage() {
                   ⚠️ Low balance! Top up to book slots.
                 </p>
               )}
+
+              {/* Recent Transactions */}
+              <div className="mt-6 border-t pt-4">
+                <h4 className="text-sm font-semibold text-gray-700 mb-3">Recent Transactions</h4>
+                {transactions.length === 0 ? (
+                  <p className="text-xs text-gray-500">No transactions yet</p>
+                ) : (
+                  <div className="space-y-2">
+                    {transactions.map((txn) => (
+                      <div key={txn.id} className="flex justify-between items-center text-xs">
+                        <div className="flex items-center gap-2">
+                          <span className={`px-2 py-0.5 rounded text-xs font-semibold ${
+                            txn.type === 'topup' ? 'bg-green-100 text-green-800' :
+                            txn.type === 'refund' ? 'bg-blue-100 text-blue-800' :
+                            txn.type === 'booking' ? 'bg-red-100 text-red-800' :
+                            'bg-gray-100 text-gray-800'
+                          }`}>
+                            {txn.type}
+                          </span>
+                          <span className="text-gray-600">
+                            {new Date(txn.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                          </span>
+                        </div>
+                        <span className={`font-semibold ${
+                          txn.amount > 0 ? 'text-green-600' : 'text-red-600'
+                        }`}>
+                          {txn.amount > 0 ? '+' : ''}€{Math.abs(txn.amount).toFixed(2)}
+                        </span>
+                      </div>
+                    ))}
+                    {transactions.length >= 10 && (
+                      <Link
+                        href="/bookings?tab=transactions"
+                        className="block text-center text-xs text-blue-600 hover:text-blue-700 mt-2"
+                      >
+                        View All Transactions →
+                      </Link>
+                    )}
+                  </div>
+                )}
+              </div>
             </div>
           </motion.div>
         </div>

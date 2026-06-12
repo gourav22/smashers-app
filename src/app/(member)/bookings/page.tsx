@@ -86,16 +86,20 @@ export default function BookingsPage() {
       setBookings(data as any || []);
 
       // Load pending refunds for cancelled bookings
-      const { data: refundsData } = await supabase
+      const { data: refundsData, error: refundsError } = await supabase
         .from('pending_refunds')
         .select('*')
-        .eq('user_id', authData.user.id)
-        .eq('status', 'pending');
+        .eq('user_id', authData.user.id);
+
+      console.log('📊 Pending refunds:', refundsData, refundsError);
 
       if (refundsData) {
         const refundsMap: Record<string, PendingRefund> = {};
         refundsData.forEach((refund: any) => {
-          refundsMap[refund.booking_id] = refund;
+          if (refund.booking_id) {
+            refundsMap[refund.booking_id] = refund;
+            console.log('✅ Mapped refund for booking:', refund.booking_id, refund.status);
+          }
         });
         setPendingRefunds(refundsMap);
       }
@@ -404,6 +408,8 @@ export default function BookingsPage() {
                 const refund = pendingRefunds[booking.id];
                 const isRefundPending = refund && refund.status === 'pending';
 
+                console.log('🔍 Booking:', booking.id, 'Refund:', refund, 'isPending:', isRefundPending);
+
                 return (
                   <div key={booking.id} className="bg-white rounded-lg shadow p-6 border-2 border-orange-200">
                     <div className="flex items-center justify-between mb-3">
@@ -429,15 +435,27 @@ export default function BookingsPage() {
                       <p>{booking.slots.time}</p>
                       <p>📍 {booking.slots.location}</p>
 
-                      {isRefundPending ? (
-                        <div className="mt-3 p-2 bg-yellow-50 rounded text-xs">
-                          <p className="font-semibold text-yellow-800">⏳ Refund Pending</p>
-                          <p className="text-yellow-700">€{refund.amount} will be refunded when slot fills</p>
-                          <p className="text-yellow-600">Expires: {new Date(refund.expires_at).toLocaleDateString()}</p>
-                        </div>
+                      {refund ? (
+                        refund.status === 'pending' ? (
+                          <div className="mt-3 p-2 bg-yellow-50 rounded text-xs">
+                            <p className="font-semibold text-yellow-800">⏳ Refund Pending</p>
+                            <p className="text-yellow-700">€{refund.amount} will be refunded when slot fills</p>
+                            <p className="text-yellow-600">Expires: {new Date(refund.expires_at).toLocaleDateString()}</p>
+                          </div>
+                        ) : refund.status === 'processed' ? (
+                          <div className="mt-3 p-2 bg-green-50 rounded text-xs">
+                            <p className="font-semibold text-green-800">✅ Refund Processed</p>
+                            <p className="text-green-700">€{refund.amount} refunded</p>
+                          </div>
+                        ) : (
+                          <div className="mt-3 p-2 bg-red-50 rounded text-xs">
+                            <p className="font-semibold text-red-800">❌ Refund Expired</p>
+                            <p className="text-red-700">No replacement found - no refund</p>
+                          </div>
+                        )
                       ) : (
                         <div className="mt-3 p-2 bg-gray-50 rounded text-xs">
-                          <p className="text-gray-600">Refund {booking.cancelled_at ? 'processed' : 'pending'}</p>
+                          <p className="text-gray-600">No refund record found</p>
                         </div>
                       )}
                     </div>
