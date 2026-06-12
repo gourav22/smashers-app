@@ -1,0 +1,6 @@
+{
+  "crons": [{
+    "path": "/api/cron/auto-book-subscriptions",
+    "schedule": "0 0 * * *"
+  }]
+}
