@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase/client';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { InstallButton } from '@/components/InstallButton';
 
 export default function SettingsPage() {
   const router = useRouter();
@@ -103,6 +104,29 @@ export default function SettingsPage() {
       </header>
 
       <main className="max-w-3xl mx-auto px-4 py-8 sm:px-6 lg:px-8">
+        {/* PWA Install Section */}
+        <div className="bg-gradient-to-r from-blue-500 to-indigo-600 rounded-lg shadow-lg p-6 mb-6 text-white">
+          <div className="flex items-start gap-4">
+            <div className="text-4xl">📱</div>
+            <div className="flex-1">
+              <h2 className="text-xl font-bold mb-2">Install Smashers Club App</h2>
+              <p className="text-sm text-blue-50 mb-4">
+                Get the best experience with our mobile app! Install it on your device for:
+              </p>
+              <ul className="text-sm text-blue-50 space-y-1 mb-4">
+                <li>✓ Faster loading and offline access</li>
+                <li>✓ Add to home screen - launch like a native app</li>
+                <li>✓ Push notifications for bookings and updates</li>
+                <li>✓ Works on iOS and Android</li>
+              </ul>
+              <InstallButton className="bg-white text-blue-600 hover:bg-blue-50" />
+              <p className="text-xs text-blue-100 mt-3">
+                💡 Not available? Try "Add to Home Screen" from your browser menu
+              </p>
+            </div>
+          </div>
+        </div>
+
         <div className="bg-white rounded-lg shadow p-6">
           <h2 className="text-xl font-semibold text-gray-900 mb-6">Sports Preferences</h2>
 

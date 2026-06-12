@@ -13,7 +13,13 @@ export function InstallPrompt() {
 
   useEffect(() => {
     // Check if already installed
-    if (window.matchMedia('(display-mode: standalone)').matches) {
+    const isStandalone = window.matchMedia('(display-mode: standalone)').matches;
+    const isInstalled = localStorage.getItem('app-installed') === 'true';
+
+    console.log('📱 PWA Status:', { isStandalone, isInstalled });
+
+    if (isStandalone || isInstalled) {
+      console.log('✅ App already installed');
       return;
     }
 
@@ -24,30 +30,44 @@ export function InstallPrompt() {
       ? (Date.now() - dismissedDate.getTime()) / (1000 * 60 * 60 * 24)
       : 999;
 
+    console.log('🔔 Install prompt dismissed:', daysSinceDismissed < 7 ? 'Yes (within 7 days)' : 'No');
+
     // Don't show if dismissed within last 7 days
     if (daysSinceDismissed < 7) {
       return;
     }
 
     const handleBeforeInstallPrompt = (e: Event) => {
+      console.log('🎯 beforeinstallprompt event fired!');
       e.preventDefault();
       const promptEvent = e as BeforeInstallPromptEvent;
       setDeferredPrompt(promptEvent);
 
-      // Show prompt after user has spent 30 seconds on the site
+      // Show prompt after user has spent 10 seconds on the site (reduced from 30)
       setTimeout(() => {
+        console.log('⏰ Showing install prompt');
         setShowPrompt(true);
-      }, 30000);
+      }, 10000);
     };
 
     window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
 
     // Check if already installed
     window.addEventListener('appinstalled', () => {
+      console.log('✅ App installed!');
       setShowPrompt(false);
       setDeferredPrompt(null);
       localStorage.setItem('app-installed', 'true');
     });
+
+    // Log after 2 seconds if event hasn't fired
+    setTimeout(() => {
+      if (!deferredPrompt) {
+        console.log('⚠️ beforeinstallprompt event not fired after 2 seconds');
+        console.log('📱 This is normal on iOS (uses native prompt) or if already installed');
+        console.log('🔧 On Android Chrome: Make sure site is HTTPS and meets PWA criteria');
+      }
+    }, 2000);
 
     return () => {
       window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
