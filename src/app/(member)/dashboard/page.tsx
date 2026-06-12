@@ -440,6 +440,14 @@ export default function DashboardPage() {
                   ➕ Create Slots
                 </Link>
               )}
+              {(user.role === 'super_admin' || user.role === 'slot_manager') && (
+                <Link
+                  href="/slots/manage"
+                  className="bg-white text-purple-600 p-4 rounded-lg text-center font-semibold hover:bg-purple-50 transition shadow-md"
+                >
+                  🗑️ Manage Slots
+                </Link>
+              )}
               {(user.role === 'super_admin' || user.role === 'finance_manager') && (
                 <Link
                   href="/members"
