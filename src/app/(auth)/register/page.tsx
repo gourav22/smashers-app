@@ -69,7 +69,7 @@ const handleSportToggle = (sport: string) => {
             name: formData.name,
             phone: formData.phone,
           },
-          emailRedirectTo: `${window.location.origin}/login`,
+          emailRedirectTo: `${window.location.origin}/auth/callback`,
         },
       });
 

@@ -74,7 +74,7 @@ export default function CreateSlotPage() {
       setSuccess(true);
 
       setTimeout(() => {
-        router.push('/slots');
+        router.push('/admin/slots/manage');
       }, 2000);
     } catch (err: any) {
       setError(err.message || 'Failed to create slot');
@@ -146,7 +146,7 @@ export default function CreateSlotPage() {
       setSuccess(true);
 
       setTimeout(() => {
-        router.push('/slots');
+        router.push('/admin/slots/manage');
       }, 3000);
     } catch (err: any) {
       setError(err.message || 'Failed to create slots');

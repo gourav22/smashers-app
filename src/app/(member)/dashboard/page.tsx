@@ -437,7 +437,7 @@ export default function DashboardPage() {
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               {(user.role === 'super_admin' || user.role === 'slot_manager') && (
                 <Link
-                  href="/slots/create"
+                  href="/admin/slots/create"
                   className="bg-white text-purple-600 p-4 rounded-lg text-center font-semibold hover:bg-purple-50 transition shadow-md"
                 >
                   ➕ Create Slots
@@ -445,7 +445,7 @@ export default function DashboardPage() {
               )}
               {(user.role === 'super_admin' || user.role === 'slot_manager') && (
                 <Link
-                  href="/slots/manage"
+                  href="/admin/slots/manage"
                   className="bg-white text-purple-600 p-4 rounded-lg text-center font-semibold hover:bg-purple-50 transition shadow-md"
                 >
                   🗑️ Manage Slots
@@ -453,7 +453,7 @@ export default function DashboardPage() {
               )}
               {(user.role === 'super_admin' || user.role === 'finance_manager') && (
                 <Link
-                  href="/members"
+                  href="/admin/members"
                   className="bg-white text-purple-600 p-4 rounded-lg text-center font-semibold hover:bg-purple-50 transition shadow-md"
                 >
                   👥 Manage Members
@@ -461,7 +461,7 @@ export default function DashboardPage() {
               )}
               {user.role === 'super_admin' && (
                 <Link
-                  href="/subscription-templates"
+                  href="/admin/subscription-templates"
                   className="bg-white text-purple-600 p-4 rounded-lg text-center font-semibold hover:bg-purple-50 transition shadow-md"
                 >
                   📋 Subscriptions

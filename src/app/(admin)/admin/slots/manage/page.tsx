@@ -195,7 +195,7 @@ export default function ManageSlotsPage() {
             <h1 className="text-2xl font-bold text-gray-900">Manage Slots</h1>
             <div className="flex gap-4">
               <Link
-                href="/slots/create"
+                href="/admin/slots/create"
                 className="bg-blue-600 text-white px-4 py-2 rounded-lg font-semibold hover:bg-blue-700"
               >
                 ➕ Create New Slot
@@ -316,7 +316,7 @@ export default function ManageSlotsPage() {
             <div className="p-8 text-center">
               <p className="text-gray-600 mb-4">No slots found</p>
               <Link
-                href="/slots/create"
+                href="/admin/slots/create"
                 className="inline-block bg-blue-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-blue-700"
               >
                 Create Your First Slot
