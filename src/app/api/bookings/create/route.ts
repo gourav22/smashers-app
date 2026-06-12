@@ -219,16 +219,27 @@ export async function POST(request: Request) {
       console.error('Error creating transaction:', transactionError);
     }
 
-    // 5. Process any pending refunds for this slot (user cancelled, we found replacement)
+    // 5. Process any pending refunds ONLY if slot is now full
     console.log('💳 Checking for pending refunds...');
-    const { data: pendingRefunds } = await supabase
-      .from('pending_refunds')
-      .select('*')
-      .eq('slot_id', slotId)
-      .eq('status', 'pending');
 
-    if (pendingRefunds && pendingRefunds.length > 0) {
-      console.log(`Found ${pendingRefunds.length} pending refund(s) - processing...`);
+    // Check if slot is now full after this booking
+    const isSlotNowFull = updatedBookedIds.length >= slot.total_spots;
+
+    if (!isSlotNowFull) {
+      console.log(`⏳ Slot not full yet (${updatedBookedIds.length}/${slot.total_spots}) - refunds still pending`);
+    }
+
+    if (isSlotNowFull) {
+      console.log(`✅ Slot is now FULL (${updatedBookedIds.length}/${slot.total_spots}) - processing pending refunds...`);
+
+      const { data: pendingRefunds } = await supabase
+        .from('pending_refunds')
+        .select('*')
+        .eq('slot_id', slotId)
+        .eq('status', 'pending');
+
+      if (pendingRefunds && pendingRefunds.length > 0) {
+        console.log(`Found ${pendingRefunds.length} pending refund(s) to process...`);
 
       for (const refund of pendingRefunds) {
         // Get user's current balance
@@ -286,6 +297,8 @@ export async function POST(request: Request) {
 
           console.log(`✅ Processed refund for user ${refund.user_id}`);
         }
+      } else {
+        console.log('No pending refunds to process');
       }
     }
 
