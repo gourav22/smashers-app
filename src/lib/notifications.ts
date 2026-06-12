@@ -122,14 +122,13 @@ export async function showNotification(payload: NotificationPayload): Promise<vo
 
   await registration.showNotification(payload.title, {
     body: payload.body,
-    icon: payload.icon || '/icons/icon-192x192.png',
-    badge: payload.badge || '/icons/icon-96x96.png',
+    icon: payload.icon || '/icons/icon.svg',
+    badge: payload.badge || '/icons/icon.svg',
     tag: payload.tag,
     data: payload.data,
-    actions: payload.actions,
     vibrate: [200, 100, 200],
     requireInteraction: false,
-  });
+  } as any);
 }
 
 // Helper function to convert VAPID key
