@@ -408,13 +408,13 @@ export default function DashboardPage() {
 
         {/* Admin Actions */}
         {(user.role === 'super_admin' || user.role === 'slot_manager' || user.role === 'finance_manager') && (
-          <div className="bg-gradient-to-r from-red-500 to-pink-600 rounded-lg shadow-lg p-6 text-white mt-8">
+          <div className="bg-gradient-to-r from-purple-600 to-indigo-600 rounded-lg shadow-lg p-6 text-white mt-8">
             <h3 className="text-xl font-semibold mb-4">⚙️ Admin Panel</h3>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               {(user.role === 'super_admin' || user.role === 'slot_manager') && (
                 <Link
                   href="/slots/create"
-                  className="bg-white/20 backdrop-blur-sm p-4 rounded-lg text-center font-semibold hover:bg-white/30 transition"
+                  className="bg-white text-purple-600 p-4 rounded-lg text-center font-semibold hover:bg-purple-50 transition shadow-md"
                 >
                   ➕ Create Slots
                 </Link>
@@ -422,7 +422,7 @@ export default function DashboardPage() {
               {(user.role === 'super_admin' || user.role === 'finance_manager') && (
                 <Link
                   href="/members"
-                  className="bg-white/20 backdrop-blur-sm p-4 rounded-lg text-center font-semibold hover:bg-white/30 transition"
+                  className="bg-white text-purple-600 p-4 rounded-lg text-center font-semibold hover:bg-purple-50 transition shadow-md"
                 >
                   👥 Manage Members
                 </Link>
@@ -430,7 +430,7 @@ export default function DashboardPage() {
               {user.role === 'super_admin' && (
                 <Link
                   href="/subscription-templates"
-                  className="bg-white/20 backdrop-blur-sm p-4 rounded-lg text-center font-semibold hover:bg-white/30 transition"
+                  className="bg-white text-purple-600 p-4 rounded-lg text-center font-semibold hover:bg-purple-50 transition shadow-md"
                 >
                   📋 Subscriptions
                 </Link>
@@ -438,7 +438,7 @@ export default function DashboardPage() {
               {user.role === 'super_admin' && (
                 <Link
                   href="/matches"
-                  className="bg-white/20 backdrop-blur-sm p-4 rounded-lg text-center font-semibold hover:bg-white/30 transition"
+                  className="bg-white text-purple-600 p-4 rounded-lg text-center font-semibold hover:bg-purple-50 transition shadow-md"
                 >
                   ⚔️ All Matches
                 </Link>
