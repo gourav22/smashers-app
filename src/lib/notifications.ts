@@ -91,11 +91,12 @@ export async function unsubscribeFromPushNotifications(): Promise<boolean> {
 }
 
 // Send subscription to server
-export async function saveSubscriptionToServer(subscription: PushSubscription, userId: string): Promise<void> {
+export async function saveSubscriptionToServer(subscription: PushSubscription, userId: string, token: string): Promise<void> {
   const response = await fetch('/api/notifications/subscribe', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`,
     },
     body: JSON.stringify({
       subscription,

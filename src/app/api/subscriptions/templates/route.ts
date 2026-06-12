@@ -37,14 +37,25 @@ export async function GET(request: NextRequest) {
 // POST - Create new subscription template (admin only)
 export async function POST(request: NextRequest) {
   try {
-    const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL || "", process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "");
-
-    // Verify admin
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
+    // Get authorization header
+    const authHeader = request.headers.get('authorization');
+    if (!authHeader) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    const token = authHeader.replace('Bearer ', '');
+    const supabaseClient = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL || "", process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "");
+
+    // Verify user
+    const { data: { user }, error: authError } = await supabaseClient.auth.getUser(token);
+    if (authError || !user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    // Use service role for database operations
+    const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL || "", process.env.SUPABASE_SERVICE_ROLE_KEY || "");
+
+    // Verify admin role
     const { data: profile } = await supabase
       .from('users')
       .select('role')

@@ -129,9 +129,19 @@ export default function SubscriptionPage() {
     setSubscribing(templateId);
 
     try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const token = session?.access_token;
+
+      if (!token) {
+        throw new Error('Not authenticated');
+      }
+
       const response = await fetch('/api/subscriptions/create', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
         body: JSON.stringify({
           templateId,
           durationMonths: selectedDuration,

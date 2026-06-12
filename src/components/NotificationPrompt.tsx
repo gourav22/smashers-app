@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { supabase } from '@/lib/supabase/client';
 import {
   isNotificationSupported,
   getNotificationPermission,
@@ -35,7 +36,14 @@ export function NotificationPrompt({ userId }: { userId: string }) {
       const subscription = await subscribeToPushNotifications();
 
       if (subscription && userId) {
-        await saveSubscriptionToServer(subscription, userId);
+        const { data: { session } } = await supabase.auth.getSession();
+        const token = session?.access_token;
+
+        if (!token) {
+          throw new Error('Not authenticated');
+        }
+
+        await saveSubscriptionToServer(subscription, userId, token);
         localStorage.setItem('notification-enabled', 'true');
         setShow(false);
       } else {

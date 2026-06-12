@@ -187,9 +187,19 @@ export default function CreateMatchPage() {
       }
 
       // Create match via API
+      const { data: { session } } = await supabase.auth.getSession();
+      const token = session?.access_token;
+
+      if (!token) {
+        throw new Error('Not authenticated');
+      }
+
       const response = await fetch('/api/matches/create', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
         body: JSON.stringify({
           slotId: selectedSlot,
           date: selectedBooking.slots.date,

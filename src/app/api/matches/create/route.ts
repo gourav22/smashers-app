@@ -3,6 +3,7 @@ import { createClient } from '@supabase/supabase-js';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
 const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "";
+const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY || "";
 
 export async function POST(request: Request) {
   try {
@@ -24,6 +25,26 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
 
+    // Get authorization header
+    const authHeader = request.headers.get('authorization');
+    if (!authHeader) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    // Verify the user
+    const token = authHeader.replace('Bearer ', '');
+    const supabaseClient = createClient(supabaseUrl, supabaseKey);
+    const { data: { user }, error: authError } = await supabaseClient.auth.getUser(token);
+
+    if (authError || !user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    // Verify user is the creator
+    if (user.id !== createdBy) {
+      return NextResponse.json({ error: 'Only creator can create match' }, { status: 403 });
+    }
+
     if (!Array.isArray(team1UserIds) || !Array.isArray(team2UserIds)) {
       return NextResponse.json({ error: 'Team user IDs must be arrays' }, { status: 400 });
     }
@@ -42,7 +63,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const supabase = createClient(supabaseUrl, supabaseKey);
+    const supabase = createClient(supabaseUrl, serviceRoleKey);
 
     // Verify all users exist
     const allUserIds = [...team1UserIds, ...team2UserIds];
