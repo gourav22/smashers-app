@@ -29,20 +29,11 @@ interface PendingRefund {
   created_at: string;
 }
 
-interface Transaction {
-  id: string;
-  type: string;
-  amount: number;
-  balance_after: number;
-  created_at: string;
-  metadata: any;
-}
 
 export default function BookingsPage() {
   const router = useRouter();
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [pendingRefunds, setPendingRefunds] = useState<Record<string, PendingRefund>>({});
-  const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
   const [cancellingId, setCancellingId] = useState<string | null>(null);
   const [undoingId, setUndoingId] = useState<string | null>(null);
@@ -101,18 +92,6 @@ export default function BookingsPage() {
           }
         });
         setPendingRefunds(refundsMap);
-      }
-
-      // Load transaction history
-      const { data: transactionsData } = await supabase
-        .from('transactions')
-        .select('*')
-        .eq('user_id', authData.user.id)
-        .order('created_at', { ascending: false })
-        .limit(50);
-
-      if (transactionsData) {
-        setTransactions(transactionsData);
       }
     } catch (error) {
       console.error('Error loading bookings:', error);
