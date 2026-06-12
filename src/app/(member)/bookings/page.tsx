@@ -10,19 +10,43 @@ interface Booking {
   status: 'confirmed' | 'waitlist' | 'cancelled';
   amount_paid: number;
   booked_at: string;
+  cancelled_at: string | null;
   slots: {
+    id: string;
     date: string;
     time: string;
     location: string;
     sport: string;
+    booked_user_ids: string[];
   };
+}
+
+interface PendingRefund {
+  id: string;
+  amount: number;
+  status: string;
+  expires_at: string;
+  created_at: string;
+}
+
+interface Transaction {
+  id: string;
+  type: string;
+  amount: number;
+  balance_after: number;
+  created_at: string;
+  metadata: any;
 }
 
 export default function BookingsPage() {
   const router = useRouter();
   const [bookings, setBookings] = useState<Booking[]>([]);
+  const [pendingRefunds, setPendingRefunds] = useState<Record<string, PendingRefund>>({});
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
   const [cancellingId, setCancellingId] = useState<string | null>(null);
+  const [undoingId, setUndoingId] = useState<string | null>(null);
+  const [showTransactions, setShowTransactions] = useState(false);
 
   useEffect(() => {
     loadBookings();
@@ -44,19 +68,49 @@ export default function BookingsPage() {
           status,
           amount_paid,
           booked_at,
+          cancelled_at,
           slots (
+            id,
             date,
             time,
             location,
-            sport
+            sport,
+            booked_user_ids
           )
         `)
         .eq('user_id', authData.user.id)
-        .order('booked_at', { ascending: false });
+        .order('booked_at', { ascending: false});
 
       if (error) throw error;
 
       setBookings(data as any || []);
+
+      // Load pending refunds for cancelled bookings
+      const { data: refundsData } = await supabase
+        .from('pending_refunds')
+        .select('*')
+        .eq('user_id', authData.user.id)
+        .eq('status', 'pending');
+
+      if (refundsData) {
+        const refundsMap: Record<string, PendingRefund> = {};
+        refundsData.forEach((refund: any) => {
+          refundsMap[refund.booking_id] = refund;
+        });
+        setPendingRefunds(refundsMap);
+      }
+
+      // Load transaction history
+      const { data: transactionsData } = await supabase
+        .from('transactions')
+        .select('*')
+        .eq('user_id', authData.user.id)
+        .order('created_at', { ascending: false })
+        .limit(50);
+
+      if (transactionsData) {
+        setTransactions(transactionsData);
+      }
     } catch (error) {
       console.error('Error loading bookings:', error);
     } finally {
@@ -99,8 +153,60 @@ export default function BookingsPage() {
     }
   };
 
+  const handleUndoCancel = async (booking: Booking) => {
+    if (!confirm('Undo cancellation and restore your booking?')) {
+      return;
+    }
+
+    setUndoingId(booking.id);
+
+    try {
+      const { data: authData } = await supabase.auth.getUser();
+
+      // Re-add user to slot
+      const updatedUserIds = [...booking.slots.booked_user_ids, authData.user!.id];
+
+      const { error: slotError } = await supabase
+        .from('slots')
+        .update({
+          booked_user_ids: updatedUserIds,
+          status: updatedUserIds.length >= 10 ? 'full' : 'open',
+        })
+        .eq('id', booking.slots.id);
+
+      if (slotError) throw slotError;
+
+      // Update booking status back to confirmed
+      const { error: bookingError } = await supabase
+        .from('bookings')
+        .update({
+          status: 'confirmed',
+          cancelled_at: null,
+        })
+        .eq('id', booking.id);
+
+      if (bookingError) throw bookingError;
+
+      // Delete pending refund if exists
+      if (pendingRefunds[booking.id]) {
+        await supabase
+          .from('pending_refunds')
+          .delete()
+          .eq('booking_id', booking.id);
+      }
+
+      alert('Booking restored successfully!');
+      await loadBookings();
+    } catch (error: any) {
+      alert(error.message || 'Failed to undo cancellation');
+    } finally {
+      setUndoingId(null);
+    }
+  };
+
   const confirmedBookings = bookings.filter((b) => b.status === 'confirmed');
   const waitlistBookings = bookings.filter((b) => b.status === 'waitlist');
+  const cancelledBookings = bookings.filter((b) => b.status === 'cancelled');
 
   if (loading) {
     return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
@@ -113,14 +219,81 @@ export default function BookingsPage() {
         <div className="max-w-7xl mx-auto px-4 py-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center">
             <h1 className="text-2xl font-bold text-gray-900">My Bookings</h1>
-            <Link href="/dashboard" className="text-blue-600 hover:text-blue-700">
-              ← Back to Dashboard
-            </Link>
+            <div className="flex gap-4 items-center">
+              <button
+                onClick={() => setShowTransactions(!showTransactions)}
+                className="text-sm bg-gray-100 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-200"
+              >
+                {showTransactions ? '📅 Show Bookings' : '💰 Transaction History'}
+              </button>
+              <Link href="/dashboard" className="text-blue-600 hover:text-blue-700">
+                ← Back to Dashboard
+              </Link>
+            </div>
           </div>
         </div>
       </header>
 
       <main className="max-w-7xl mx-auto px-4 py-8 sm:px-6 lg:px-8">
+        {showTransactions ? (
+          /* Transaction History */
+          <div>
+            <h2 className="text-xl font-semibold text-gray-900 mb-4">
+              💰 Transaction History ({transactions.length})
+            </h2>
+            {transactions.length === 0 ? (
+              <div className="bg-white rounded-lg shadow p-8 text-center">
+                <p className="text-gray-600">No transactions yet</p>
+              </div>
+            ) : (
+              <div className="bg-white rounded-lg shadow overflow-hidden">
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Type</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Amount</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Balance After</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Details</th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {transactions.map((txn) => (
+                      <tr key={txn.id}>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                          {new Date(txn.created_at).toLocaleDateString()}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm">
+                          <span className={`px-2 py-1 rounded text-xs font-semibold ${
+                            txn.type === 'topup' ? 'bg-green-100 text-green-800' :
+                            txn.type === 'refund' ? 'bg-blue-100 text-blue-800' :
+                            txn.type === 'booking' ? 'bg-red-100 text-red-800' :
+                            'bg-gray-100 text-gray-800'
+                          }`}>
+                            {txn.type}
+                          </span>
+                        </td>
+                        <td className={`px-6 py-4 whitespace-nowrap text-sm font-medium ${
+                          txn.amount > 0 ? 'text-green-600' : 'text-red-600'
+                        }`}>
+                          {txn.amount > 0 ? '+' : ''}€{txn.amount.toFixed(2)}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                          €{txn.balance_after.toFixed(2)}
+                        </td>
+                        <td className="px-6 py-4 text-sm text-gray-500">
+                          {txn.metadata?.reason || '-'}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        ) : (
+          /* Bookings View */
+          <>
         {/* Confirmed Bookings */}
         <div className="mb-8">
           <h2 className="text-xl font-semibold text-gray-900 mb-4">
@@ -220,6 +393,71 @@ export default function BookingsPage() {
           </div>
         )}
 
+        {/* Cancelled Bookings with Pending Refunds */}
+        {cancelledBookings.length > 0 && (
+          <div className="mb-8">
+            <h2 className="text-xl font-semibold text-gray-900 mb-4">
+              ❌ Cancelled - Awaiting Refund ({cancelledBookings.length})
+            </h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {cancelledBookings.map((booking) => {
+                const refund = pendingRefunds[booking.id];
+                const isRefundPending = refund && refund.status === 'pending';
+
+                return (
+                  <div key={booking.id} className="bg-white rounded-lg shadow p-6 border-2 border-orange-200">
+                    <div className="flex items-center justify-between mb-3">
+                      <span className="text-2xl">
+                        {booking.slots.sport === 'badminton' ? '🏸' : '🏏'}
+                      </span>
+                      <span className="bg-orange-100 text-orange-800 text-xs px-2 py-1 rounded font-semibold">
+                        Cancelled
+                      </span>
+                    </div>
+                    <h3 className="text-lg font-semibold text-gray-900 mb-2 capitalize">
+                      {booking.slots.sport}
+                    </h3>
+                    <div className="space-y-1 text-sm text-gray-600">
+                      <p className="font-medium">
+                        {new Date(booking.slots.date).toLocaleDateString('en-US', {
+                          weekday: 'long',
+                          year: 'numeric',
+                          month: 'long',
+                          day: 'numeric',
+                        })}
+                      </p>
+                      <p>{booking.slots.time}</p>
+                      <p>📍 {booking.slots.location}</p>
+
+                      {isRefundPending ? (
+                        <div className="mt-3 p-2 bg-yellow-50 rounded text-xs">
+                          <p className="font-semibold text-yellow-800">⏳ Refund Pending</p>
+                          <p className="text-yellow-700">€{refund.amount} will be refunded when slot fills</p>
+                          <p className="text-yellow-600">Expires: {new Date(refund.expires_at).toLocaleDateString()}</p>
+                        </div>
+                      ) : (
+                        <div className="mt-3 p-2 bg-gray-50 rounded text-xs">
+                          <p className="text-gray-600">Refund {booking.cancelled_at ? 'processed' : 'pending'}</p>
+                        </div>
+                      )}
+                    </div>
+
+                    {isRefundPending && (
+                      <button
+                        onClick={() => handleUndoCancel(booking)}
+                        disabled={undoingId === booking.id}
+                        className="mt-4 w-full bg-blue-50 text-blue-600 py-2 rounded-lg text-sm font-medium hover:bg-blue-100 disabled:bg-gray-100 disabled:text-gray-400"
+                      >
+                        {undoingId === booking.id ? 'Restoring...' : '↶ Undo Cancellation'}
+                      </button>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
         {bookings.length === 0 && (
           <div className="text-center py-12">
             <p className="text-xl text-gray-600 mb-2">No bookings yet</p>
@@ -231,6 +469,8 @@ export default function BookingsPage() {
               Browse Available Slots
             </Link>
           </div>
+        )}
+        </>
         )}
       </main>
     </div>
