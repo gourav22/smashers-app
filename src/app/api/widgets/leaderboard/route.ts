@@ -5,7 +5,7 @@ import { NextRequest, NextResponse } from 'next/server';
 // Leaderboard widget data
 export async function GET(request: NextRequest) {
   try {
-    const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!);
+    const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL || "", process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "");
     const { searchParams } = new URL(request.url);
     const sport = searchParams.get('sport') || 'badminton';
 

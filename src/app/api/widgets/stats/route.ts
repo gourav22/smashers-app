@@ -5,7 +5,7 @@ import { NextRequest, NextResponse } from 'next/server';
 // Widget data API for future PWA widget support
 export async function GET(request: NextRequest) {
   try {
-    const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!);
+    const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL || "", process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "");
 
     // Verify user is authenticated
     const { data: { user } } = await supabase.auth.getUser();
