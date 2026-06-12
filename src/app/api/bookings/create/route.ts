@@ -111,17 +111,18 @@ export async function POST(request: Request) {
       );
     }
 
-    // Check if booking already exists (in case of partial transaction)
-    console.log('🔍 Checking for existing booking...');
+    // Check if booking already exists (excluding cancelled bookings)
+    console.log('🔍 Checking for existing active booking...');
     const { data: existingBooking } = await supabase
       .from('bookings')
       .select('id, status')
       .eq('user_id', userId)
       .eq('slot_id', slotId)
-      .single();
+      .neq('status', 'cancelled')  // Exclude cancelled bookings
+      .maybeSingle();  // Use maybeSingle to avoid error if no booking found
 
     if (existingBooking) {
-      console.log('⚠️ Booking already exists:', existingBooking.id);
+      console.log('⚠️ Active booking already exists:', existingBooking.id, 'Status:', existingBooking.status);
       return NextResponse.json(
         { error: 'You have already booked this slot' },
         { status: 400 }
@@ -152,8 +153,9 @@ export async function POST(request: Request) {
     if (bookingError) {
       console.error('❌ Booking creation error:', bookingError);
 
-      // Handle duplicate booking error specifically
+      // Handle duplicate booking error specifically (unique constraint violation)
       if (bookingError.code === '23505') {
+        console.log('⚠️ Duplicate key error - user already has active booking for this slot');
         return NextResponse.json(
           { error: 'You have already booked this slot' },
           { status: 400 }
