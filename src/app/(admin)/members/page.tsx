@@ -18,6 +18,8 @@ interface Member {
   cricket_elo: number;
   cricket_grade: 'A' | 'B' | 'C' | 'D';
   created_at: string;
+  subscription_count?: number;
+  member_type?: string;
 }
 
 export default function MembersPage() {
@@ -75,7 +77,23 @@ export default function MembersPage() {
 
       if (error) throw error;
 
-      setMembers(data || []);
+      // Get subscription counts for all users
+      const { data: subscriptions } = await supabase
+        .from('subscriptions')
+        .select('user_id, status')
+        .eq('status', 'active');
+
+      // Map subscription counts to members
+      const membersWithType = (data || []).map(member => {
+        const activeSubscriptions = subscriptions?.filter(s => s.user_id === member.id).length || 0;
+        return {
+          ...member,
+          subscription_count: activeSubscriptions,
+          member_type: activeSubscriptions > 0 ? 'Regular' : 'Adhoc'
+        };
+      });
+
+      setMembers(membersWithType);
     } catch (error) {
       console.error('Error loading members:', error);
     } finally {
@@ -188,28 +206,34 @@ export default function MembersPage() {
 
       <main className="max-w-7xl mx-auto px-4 py-8 sm:px-6 lg:px-8">
         {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-8">
           <div className="bg-white rounded-lg shadow p-6">
             <div className="text-3xl font-bold text-blue-600">{members.length}</div>
             <div className="text-sm text-gray-600">Total Members</div>
           </div>
           <div className="bg-white rounded-lg shadow p-6">
             <div className="text-3xl font-bold text-green-600">
+              {members.filter((m) => m.member_type === 'Regular').length}
+            </div>
+            <div className="text-sm text-gray-600">Regular (Subscribers)</div>
+          </div>
+          <div className="bg-white rounded-lg shadow p-6">
+            <div className="text-3xl font-bold text-amber-600">
+              {members.filter((m) => m.member_type === 'Adhoc').length}
+            </div>
+            <div className="text-sm text-gray-600">Adhoc Members</div>
+          </div>
+          <div className="bg-white rounded-lg shadow p-6">
+            <div className="text-3xl font-bold text-purple-600">
               €{members.reduce((sum, m) => sum + m.balance, 0).toFixed(2)}
             </div>
             <div className="text-sm text-gray-600">Total Balance</div>
           </div>
           <div className="bg-white rounded-lg shadow p-6">
-            <div className="text-3xl font-bold text-purple-600">
+            <div className="text-3xl font-bold text-red-600">
               {members.filter((m) => m.role === 'super_admin' || m.role === 'slot_manager').length}
             </div>
             <div className="text-sm text-gray-600">Admins</div>
-          </div>
-          <div className="bg-white rounded-lg shadow p-6">
-            <div className="text-3xl font-bold text-indigo-600">
-              {members.filter((m) => m.role === 'member').length}
-            </div>
-            <div className="text-sm text-gray-600">Regular Members</div>
           </div>
         </div>
 
@@ -232,6 +256,7 @@ export default function MembersPage() {
                 <tr>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Name</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Email</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Type</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Role</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Balance</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Badminton</th>
@@ -248,6 +273,22 @@ export default function MembersPage() {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-sm text-gray-900">{member.email}</div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span
+                        className={`px-2 py-1 text-xs font-semibold rounded-full ${
+                          member.member_type === 'Regular'
+                            ? 'bg-green-100 text-green-800'
+                            : 'bg-gray-100 text-gray-800'
+                        }`}
+                      >
+                        {member.member_type === 'Regular' ? '📅 Regular' : '👤 Adhoc'}
+                      </span>
+                      {member.subscription_count! > 0 && (
+                        <div className="text-xs text-gray-500 mt-1">
+                          {member.subscription_count} active
+                        </div>
+                      )}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span
