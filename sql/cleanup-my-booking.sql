@@ -26,8 +26,10 @@ DELETE FROM bookings
 WHERE user_id = '3aa912de-7f63-4d91-92d8-f8b91dad4fa2'
   AND slot_id = 'f0185582-3e66-426b-a19b-f78bcaeae19b'
   AND status = 'confirmed'
-  AND NOT (user_id = ANY(
-    SELECT booked_user_ids FROM slots WHERE id = 'f0185582-3e66-426b-a19b-f78bcaeae19b'
-  ));
+  AND NOT EXISTS (
+    SELECT 1 FROM slots
+    WHERE id = 'f0185582-3e66-426b-a19b-f78bcaeae19b'
+    AND '3aa912de-7f63-4d91-92d8-f8b91dad4fa2' = ANY(booked_user_ids)
+  );
 
 SELECT 'Cleanup complete! You can now book this slot again.' as message;
