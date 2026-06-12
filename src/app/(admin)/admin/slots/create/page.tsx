@@ -248,28 +248,61 @@ export default function CreateSlotPage() {
               {/* Sport */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Sport</label>
-                <div className="flex gap-4">
-                  <label className="flex items-center">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <label
+                    className={`cursor-pointer rounded-lg border px-4 py-3 transition ${
+                      formData.sport === 'badminton'
+                        ? 'border-emerald-500 bg-emerald-50 text-emerald-900 ring-2 ring-emerald-200'
+                        : 'border-gray-300 bg-white text-gray-700 hover:border-gray-400'
+                    }`}
+                  >
                     <input
                       type="radio"
                       name="sport"
                       value="badminton"
                       checked={formData.sport === 'badminton'}
                       onChange={() => setFormData({ ...formData, sport: 'badminton' })}
-                      className="mr-2"
+                      className="sr-only"
                     />
-                    🏸 Badminton
+                    <div className="flex items-center gap-2">
+                      <span
+                        className={`h-3 w-3 rounded-full border ${
+                          formData.sport === 'badminton'
+                            ? 'border-emerald-600 bg-emerald-600'
+                            : 'border-gray-400 bg-white'
+                        }`}
+                      />
+                      <span className="text-lg">🏸</span>
+                      <span className="font-semibold">Badminton</span>
+                    </div>
                   </label>
-                  <label className="flex items-center">
+
+                  <label
+                    className={`cursor-pointer rounded-lg border px-4 py-3 transition ${
+                      formData.sport === 'cricket'
+                        ? 'border-amber-500 bg-amber-50 text-amber-900 ring-2 ring-amber-200'
+                        : 'border-gray-300 bg-white text-gray-700 hover:border-gray-400'
+                    }`}
+                  >
                     <input
                       type="radio"
                       name="sport"
                       value="cricket"
                       checked={formData.sport === 'cricket'}
                       onChange={() => setFormData({ ...formData, sport: 'cricket' })}
-                      className="mr-2"
+                      className="sr-only"
                     />
-                    🏏 Cricket
+                    <div className="flex items-center gap-2">
+                      <span
+                        className={`h-3 w-3 rounded-full border ${
+                          formData.sport === 'cricket'
+                            ? 'border-amber-600 bg-amber-600'
+                            : 'border-gray-400 bg-white'
+                        }`}
+                      />
+                      <span className="text-lg">🏏</span>
+                      <span className="font-semibold">Cricket</span>
+                    </div>
                   </label>
                 </div>
               </div>
@@ -355,28 +388,61 @@ export default function CreateSlotPage() {
               {/* Sport */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Sport</label>
-                <div className="flex gap-4">
-                  <label className="flex items-center">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <label
+                    className={`cursor-pointer rounded-lg border px-4 py-3 transition ${
+                      bulkData.sport === 'badminton'
+                        ? 'border-emerald-500 bg-emerald-50 text-emerald-900 ring-2 ring-emerald-200'
+                        : 'border-gray-300 bg-white text-gray-700 hover:border-gray-400'
+                    }`}
+                  >
                     <input
                       type="radio"
                       name="bulkSport"
                       value="badminton"
                       checked={bulkData.sport === 'badminton'}
                       onChange={() => setBulkData({ ...bulkData, sport: 'badminton' })}
-                      className="mr-2"
+                      className="sr-only"
                     />
-                    🏸 Badminton
+                    <div className="flex items-center gap-2">
+                      <span
+                        className={`h-3 w-3 rounded-full border ${
+                          bulkData.sport === 'badminton'
+                            ? 'border-emerald-600 bg-emerald-600'
+                            : 'border-gray-400 bg-white'
+                        }`}
+                      />
+                      <span className="text-lg">🏸</span>
+                      <span className="font-semibold">Badminton</span>
+                    </div>
                   </label>
-                  <label className="flex items-center">
+
+                  <label
+                    className={`cursor-pointer rounded-lg border px-4 py-3 transition ${
+                      bulkData.sport === 'cricket'
+                        ? 'border-amber-500 bg-amber-50 text-amber-900 ring-2 ring-amber-200'
+                        : 'border-gray-300 bg-white text-gray-700 hover:border-gray-400'
+                    }`}
+                  >
                     <input
                       type="radio"
                       name="bulkSport"
                       value="cricket"
                       checked={bulkData.sport === 'cricket'}
                       onChange={() => setBulkData({ ...bulkData, sport: 'cricket' })}
-                      className="mr-2"
+                      className="sr-only"
                     />
-                    🏏 Cricket
+                    <div className="flex items-center gap-2">
+                      <span
+                        className={`h-3 w-3 rounded-full border ${
+                          bulkData.sport === 'cricket'
+                            ? 'border-amber-600 bg-amber-600'
+                            : 'border-gray-400 bg-white'
+                        }`}
+                      />
+                      <span className="text-lg">🏏</span>
+                      <span className="font-semibold">Cricket</span>
+                    </div>
                   </label>
                 </div>
               </div>
