@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import "./globals.css";
 import { RegisterServiceWorker } from "./register-sw";
 import { InstallPrompt } from "@/components/InstallPrompt";
-import { IOSChromePrompt } from "@/components/IOSChromePrompt";
 import { ThemeProvider } from "@/components/ThemeProvider";
 
 export const metadata: Metadata = {
@@ -52,7 +51,6 @@ export default function RootLayout({
       <body className="min-h-full flex flex-col">
         <ThemeProvider>
           <RegisterServiceWorker />
-          <IOSChromePrompt />
           <InstallPrompt />
           {children}
         </ThemeProvider>
