@@ -219,6 +219,76 @@ export async function POST(request: Request) {
       console.error('Error creating transaction:', transactionError);
     }
 
+    // 5. Process any pending refunds for this slot (user cancelled, we found replacement)
+    console.log('💳 Checking for pending refunds...');
+    const { data: pendingRefunds } = await supabase
+      .from('pending_refunds')
+      .select('*')
+      .eq('slot_id', slotId)
+      .eq('status', 'pending');
+
+    if (pendingRefunds && pendingRefunds.length > 0) {
+      console.log(`Found ${pendingRefunds.length} pending refund(s) - processing...`);
+
+      for (const refund of pendingRefunds) {
+        // Get user's current balance
+        const { data: refundUser } = await supabase
+          .from('users')
+          .select('balance')
+          .eq('id', refund.user_id)
+          .single();
+
+        if (refundUser) {
+          const refundBalance = refundUser.balance + refund.amount;
+
+          // Update balance
+          await supabase
+            .from('users')
+            .update({ balance: refundBalance })
+            .eq('id', refund.user_id);
+
+          // Create transaction record
+          await supabase.from('transactions').insert({
+            user_id: refund.user_id,
+            type: 'refund',
+            amount: refund.amount,
+            balance_after: refundBalance,
+            metadata: {
+              reason: 'Cancellation refund - replacement found',
+              slot_id: slotId,
+              replacement_user_id: userId,
+            },
+          });
+
+          // Mark refund as processed
+          await supabase
+            .from('pending_refunds')
+            .update({
+              status: 'processed',
+              processed_at: new Date().toISOString(),
+            })
+            .eq('id', refund.id);
+
+          // Notify user about refund (in-app)
+          await supabase.from('notifications').insert({
+            user_id: refund.user_id,
+            type: 'refund',
+            title: 'Refund Processed',
+            message: `€${refund.amount.toFixed(2)} has been refunded. A replacement was found for your cancelled booking.`,
+          });
+
+          // Send push notification
+          await sendPushNotification(refund.user_id, {
+            title: '💰 Refund Processed',
+            body: `€${refund.amount} refunded - replacement found!`,
+            url: '/bookings',
+          });
+
+          console.log(`✅ Processed refund for user ${refund.user_id}`);
+        }
+      }
+    }
+
     console.log('🎉 Booking completed successfully!');
     return NextResponse.json({
       success: true,
@@ -231,5 +301,67 @@ export async function POST(request: Request) {
       { error: 'Internal server error', details: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 }
     );
+  }
+}
+
+async function sendPushNotification(userId: string, notification: { title: string; body: string; url: string }) {
+  try {
+    const supabase = createClient(supabaseUrl, serviceRoleKey || supabaseKey);
+
+    // Get user's push subscription
+    const { data: subscriptions } = await supabase
+      .from('push_subscriptions')
+      .select('*')
+      .eq('user_id', userId);
+
+    if (!subscriptions || subscriptions.length === 0) {
+      console.log('No push subscriptions for user:', userId);
+      return;
+    }
+
+    const webpush = require('web-push');
+
+    // Configure VAPID keys
+    webpush.setVapidDetails(
+      'mailto:admin@smashersclub.com',
+      process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY,
+      process.env.VAPID_PRIVATE_KEY
+    );
+
+    // Send to all user's devices
+    for (const subscription of subscriptions) {
+      try {
+        await webpush.sendNotification(
+          {
+            endpoint: subscription.endpoint,
+            keys: {
+              p256dh: subscription.p256dh,
+              auth: subscription.auth,
+            },
+          },
+          JSON.stringify({
+            title: notification.title,
+            body: notification.body,
+            icon: '/icon-192x192.png',
+            badge: '/icon-192x192.png',
+            data: {
+              url: notification.url,
+            },
+          })
+        );
+        console.log('✅ Push notification sent to user:', userId);
+      } catch (error) {
+        console.error('Failed to send push notification:', error);
+        // If subscription is invalid, remove it
+        if ((error as any).statusCode === 410) {
+          await supabase
+            .from('push_subscriptions')
+            .delete()
+            .eq('id', subscription.id);
+        }
+      }
+    }
+  } catch (error) {
+    console.error('Error sending push notification:', error);
   }
 }

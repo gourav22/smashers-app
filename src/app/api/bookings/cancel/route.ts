@@ -72,50 +72,46 @@ export async function POST(request: NextRequest) {
       })
       .eq('id', booking.slot_id);
 
-    // Handle refund and waitlist logic based on days until game
-    if (daysUntilGame > 7) {
-      // More than 7 days: Wait for replacement before refund
-      await handleWaitlistNotification(booking.slot_id, booking.user_id, 'fifo');
+    // Handle refund logic - wait until game time for replacement
+    // Refund is blocked until either:
+    // 1. Someone new books the slot (replacement found), OR
+    // 2. Game time passes without replacement (no refund - forfeited)
 
-      return NextResponse.json({
-        success: true,
-        message: 'Booking cancelled. Refund will be processed if a replacement is found.',
-        refundStatus: 'pending',
-      });
-    } else if (daysUntilGame >= 1 && daysUntilGame <= 7) {
-      // 1-7 days: FIFO waitlist with 12-hour timeout
-      await handleWaitlistNotification(booking.slot_id, booking.user_id, 'fifo');
+    await handleWaitlistAndRefund(booking.slot_id, booking.slot_id, booking.user_id, slotDate, booking.amount_paid);
 
-      return NextResponse.json({
-        success: true,
-        message: 'Booking cancelled. Refund will be processed if a replacement is found within 12 hours.',
-        refundStatus: 'pending',
-      });
-    } else {
-      // Game day: First-come-first-serve (notify all waitlist)
-      await handleWaitlistNotification(booking.slot_id, booking.user_id, 'fcfs');
-
-      return NextResponse.json({
-        success: true,
-        message: 'Booking cancelled. Refund will be processed if someone from waitlist confirms immediately.',
-        refundStatus: 'pending',
-      });
-    }
+    return NextResponse.json({
+      success: true,
+      message: `Booking cancelled. Refund of €${booking.amount_paid} will be processed if a replacement is found before ${slotDate.toLocaleDateString()}.`,
+      refundStatus: 'pending',
+      expiresAt: slotDate.toISOString(),
+    });
   } catch (error: any) {
     console.error('Error cancelling booking:', error);
     return NextResponse.json({ error: error.message || 'Failed to cancel booking' }, { status: 500 });
   }
 }
 
-async function handleWaitlistNotification(slotId: string, cancelledUserId: string, strategy: 'fifo' | 'fcfs') {
-  // Get slot with waitlist
+async function handleWaitlistAndRefund(bookingId: string, slotId: string, cancelledUserId: string, gameDate: Date, amount: number) {
+  // Get slot details
   const { data: slot } = await supabase
     .from('slots')
-    .select('*, bookings!inner(*)')
+    .select('*')
     .eq('id', slotId)
     .single();
 
   if (!slot) return;
+
+  // Create pending refund that expires at game time
+  console.log('Creating pending refund for user:', cancelledUserId, 'expires at:', gameDate.toISOString());
+
+  await supabase.from('pending_refunds').insert({
+    user_id: cancelledUserId,
+    slot_id: slotId,
+    booking_id: bookingId,
+    amount: amount,
+    reason: 'cancelled_awaiting_replacement',
+    expires_at: gameDate.toISOString(), // Expires at game time, not 12 hours
+  });
 
   // Get waitlist bookings sorted by created_at
   const { data: waitlistBookings } = await supabase
@@ -125,47 +121,87 @@ async function handleWaitlistNotification(slotId: string, cancelledUserId: strin
     .eq('status', 'waitlist')
     .order('created_at', { ascending: true });
 
-  if (!waitlistBookings || waitlistBookings.length === 0) {
-    // No one on waitlist, process refund immediately
-    await processRefund(cancelledUserId, 4);
-    return;
+  if (waitlistBookings && waitlistBookings.length > 0) {
+    // Notify waitlist members that slot is available
+    console.log(`Notifying ${waitlistBookings.length} waitlist member(s)`);
+
+    for (const waitlistBooking of waitlistBookings) {
+      // Send in-app notification
+      await supabase.from('notifications').insert({
+        user_id: waitlistBooking.user_id,
+        type: 'waitlist_available',
+        title: 'Slot Available!',
+        message: `A spot opened up for ${slot.sport} on ${slot.date} at ${slot.time}. Book now!`,
+        action_url: `/slots`,
+      });
+
+      // Send push notification
+      await sendPushNotification(waitlistBooking.user_id, {
+        title: '🏸 Slot Available!',
+        body: `${slot.sport} on ${slot.date} at ${slot.time} - Book now!`,
+        url: `/slots`,
+      });
+    }
   }
+}
 
-  if (strategy === 'fifo') {
-    // Notify first person on waitlist
-    const firstInLine = waitlistBookings[0];
-    const expiresAt = new Date();
-    expiresAt.setHours(expiresAt.getHours() + 12); // 12-hour window
+async function sendPushNotification(userId: string, notification: { title: string; body: string; url: string }) {
+  try {
+    // Get user's push subscription
+    const { data: subscriptions } = await supabase
+      .from('push_subscriptions')
+      .select('*')
+      .eq('user_id', userId);
 
-    await supabase.from('notifications').insert({
-      user_id: firstInLine.user_id,
-      type: 'waitlist_available',
-      title: 'Slot Available!',
-      message: `A spot opened up for ${slot.sport} on ${slot.date} at ${slot.time}. Confirm within 12 hours to claim it!`,
-      action_url: `/bookings?confirm=${firstInLine.id}`,
-      expires_at: expiresAt.toISOString(),
-      metadata: {
-        slot_id: slotId,
-        booking_id: firstInLine.id,
-        cancelled_user_id: cancelledUserId,
-      },
-    });
-  } else {
-    // Notify all waitlist members (first-come-first-serve)
-    const notifications = waitlistBookings.map((booking) => ({
-      user_id: booking.user_id,
-      type: 'waitlist_available',
-      title: 'Slot Available NOW!',
-      message: `A spot opened up for ${slot.sport} on ${slot.date} at ${slot.time}. First to confirm gets it!`,
-      action_url: `/bookings?confirm=${booking.id}`,
-      metadata: {
-        slot_id: slotId,
-        booking_id: booking.id,
-        cancelled_user_id: cancelledUserId,
-      },
-    }));
+    if (!subscriptions || subscriptions.length === 0) {
+      console.log('No push subscriptions for user:', userId);
+      return;
+    }
 
-    await supabase.from('notifications').insert(notifications);
+    const webpush = require('web-push');
+
+    // Configure VAPID keys
+    webpush.setVapidDetails(
+      'mailto:admin@smashersclub.com',
+      process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY,
+      process.env.VAPID_PRIVATE_KEY
+    );
+
+    // Send to all user's devices
+    for (const subscription of subscriptions) {
+      try {
+        await webpush.sendNotification(
+          {
+            endpoint: subscription.endpoint,
+            keys: {
+              p256dh: subscription.p256dh,
+              auth: subscription.auth,
+            },
+          },
+          JSON.stringify({
+            title: notification.title,
+            body: notification.body,
+            icon: '/icon-192x192.png',
+            badge: '/icon-192x192.png',
+            data: {
+              url: notification.url,
+            },
+          })
+        );
+        console.log('✅ Push notification sent to user:', userId);
+      } catch (error) {
+        console.error('Failed to send push notification:', error);
+        // If subscription is invalid, remove it
+        if ((error as any).statusCode === 410) {
+          await supabase
+            .from('push_subscriptions')
+            .delete()
+            .eq('id', subscription.id);
+        }
+      }
+    }
+  } catch (error) {
+    console.error('Error sending push notification:', error);
   }
 }
 
