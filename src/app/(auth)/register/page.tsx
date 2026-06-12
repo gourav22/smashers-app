@@ -17,6 +17,7 @@ export default function RegisterPage() {
   });
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
+  const [sportsPlayed, setSportsPlayed] = useState<string[]>([]);
   const [success, setSuccess] = useState(false);
   const [loading, setLoading] = useState(false);
 
@@ -26,6 +27,12 @@ export default function RegisterPage() {
       [e.target.name]: e.target.value,
     });
   };
+
+const handleSportToggle = (sport: string) => {
+  setSportsPlayed((prev) =>
+    prev.includes(sport) ? prev.filter((s) => s !== sport) : [...prev, sport]
+  );
+};
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -69,6 +76,12 @@ export default function RegisterPage() {
       if (signUpError) throw signUpError;
 
       if (data.user) {
+          // Update user profile with sports_played
+          await supabase
+            .from('users')
+            .update({ sports_played: sportsPlayed })
+            .eq('id', data.user.id);
+
         setSuccess(true);
       }
     } catch (err: any) {
@@ -199,9 +212,33 @@ export default function RegisterPage() {
             />
           </div>
 
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Which sports do you play?
+            </label>
+            <div className="space-y-2">
+              {['badminton', 'cricket'].map((sport) => (
+                <label key={sport} className="flex items-center">
+                  <input
+                    type="checkbox"
+                    checked={sportsPlayed.includes(sport)}
+                    onChange={() => handleSportToggle(sport)}
+                    className="w-4 h-4 text-blue-600 rounded focus:ring-2 focus:ring-blue-500"
+                  />
+                  <span className="ml-2 text-gray-700 capitalize">
+                    {sport === 'badminton' ? '🏸 Badminton' : '🏏 Cricket'}
+                  </span>
+                </label>
+              ))}
+            </div>
+            {sportsPlayed.length === 0 && (
+              <p className="text-xs text-red-500 mt-1">Please select at least one sport</p>
+            )}
+          </div>
+
           <button
             type="submit"
-            disabled={loading}
+            disabled={loading || sportsPlayed.length === 0}
             className="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition"
           >
             {loading ? 'Creating account...' : 'Register'}

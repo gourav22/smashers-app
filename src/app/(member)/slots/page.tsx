@@ -27,7 +27,7 @@ export default function SlotsPage() {
 
   useEffect(() => {
     loadData();
-  }, []);
+  }, []); // Empty dependency - run once on mount
 
   const loadData = async () => {
     try {
@@ -82,10 +82,21 @@ export default function SlotsPage() {
         return;
       }
 
-      // Call booking API (we'll create this next)
+      // Get auth token
+      const session = await supabase.auth.getSession();
+      const token = session.data.session?.access_token;
+
+      if (!token) {
+        throw new Error('No authentication token found');
+      }
+
+      // Call booking API with token
       const response = await fetch('/api/bookings/create', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
         body: JSON.stringify({ slotId, userId }),
       });
 

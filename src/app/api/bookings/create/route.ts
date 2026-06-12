@@ -3,10 +3,12 @@ import { createClient } from '@supabase/supabase-js';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
 const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "";
+const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY || "";
 
 export async function POST(request: Request) {
   try {
     const { slotId, userId } = await request.json();
+    const token = request.headers.get('authorization')?.replace('Bearer ', '');
 
     if (!slotId || !userId) {
       return NextResponse.json(
@@ -15,7 +17,34 @@ export async function POST(request: Request) {
       );
     }
 
-    const supabase = createClient(supabaseUrl, supabaseKey);
+    if (!token) {
+      return NextResponse.json(
+        { error: 'Unauthorized: No token provided' },
+        { status: 401 }
+      );
+    }
+
+    // Use anon client with token to verify user identity
+    const supabaseAuth = createClient(supabaseUrl, supabaseKey);
+    const { data: userData, error: authError } = await supabaseAuth.auth.getUser(token);
+
+    if (authError || !userData.user) {
+      return NextResponse.json(
+        { error: 'Unauthorized: Invalid token' },
+        { status: 401 }
+      );
+    }
+
+    // Verify user is trying to book for themselves
+    if (userData.user.id !== userId) {
+      return NextResponse.json(
+        { error: 'Unauthorized: Cannot book for another user' },
+        { status: 403 }
+      );
+    }
+
+    // Use service role key for database operations (bypasses RLS)
+    const supabase = createClient(supabaseUrl, serviceRoleKey);
     const bookingCost = parseInt(process.env.NEXT_PUBLIC_BOOKING_COST || '4');
 
     // Get user and slot data
