@@ -413,7 +413,7 @@ export default function DashboardPage() {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               {(user.role === 'super_admin' || user.role === 'slot_manager') && (
                 <Link
-                  href="/admin/slots/create"
+                  href="/slots/create"
                   className="bg-white/20 backdrop-blur-sm p-4 rounded-lg text-center font-semibold hover:bg-white/30 transition"
                 >
                   ➕ Create Slots
@@ -421,7 +421,7 @@ export default function DashboardPage() {
               )}
               {(user.role === 'super_admin' || user.role === 'finance_manager') && (
                 <Link
-                  href="/admin/members"
+                  href="/members"
                   className="bg-white/20 backdrop-blur-sm p-4 rounded-lg text-center font-semibold hover:bg-white/30 transition"
                 >
                   👥 Manage Members
