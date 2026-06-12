@@ -53,18 +53,18 @@ export async function POST(request: Request) {
       );
     }
 
-    // Use service role key if available, otherwise use anon key with user's auth
-    // Since we applied RLS policies, the anon key should work with proper authentication
-    const dbKey = serviceRoleKey || supabaseKey;
-    console.log('🔑 Using database key:', serviceRoleKey ? 'SERVICE_ROLE' : 'ANON');
+    // Create service role client (bypasses RLS) for database operations
+    // User is already authenticated above, so we can trust the userId
+    if (!serviceRoleKey) {
+      console.log('❌ Service role key not configured');
+      return NextResponse.json(
+        { error: 'Server configuration error: Service role key required' },
+        { status: 500 }
+      );
+    }
 
-    const supabase = createClient(supabaseUrl, dbKey, {
-      global: {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      },
-    });
+    console.log('🔑 Using SERVICE_ROLE key to bypass RLS');
+    const supabase = createClient(supabaseUrl, serviceRoleKey);
     const bookingCost = parseInt(process.env.NEXT_PUBLIC_BOOKING_COST || '4');
     console.log('💰 Booking cost:', bookingCost);
 
