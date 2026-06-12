@@ -8,7 +8,7 @@ SELECT
   u.name as user_name,
   b.slot_id,
   s.date,
-  s.slot_time,
+  s.time,
   s.sport,
   s.booked_user_ids,
   CASE
