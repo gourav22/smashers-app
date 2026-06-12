@@ -297,6 +297,7 @@ export async function POST(request: Request) {
 
           console.log(`✅ Processed refund for user ${refund.user_id}`);
         }
+      }
       } else {
         console.log('No pending refunds to process');
       }
