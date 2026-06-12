@@ -22,6 +22,7 @@ CREATE TABLE IF NOT EXISTS public.users (
   role TEXT DEFAULT 'member' CHECK (role IN ('member', 'super_admin', 'slot_manager', 'finance_manager')),
   balance NUMERIC(10, 2) DEFAULT 0 CHECK (balance >= 0),
   sports_played TEXT[] DEFAULT ARRAY['badminton', 'cricket'],
+  push_subscription JSONB DEFAULT NULL,
 
   -- Badminton stats
   badminton_elo INTEGER DEFAULT 1200,
@@ -230,6 +231,7 @@ CREATE INDEX IF NOT EXISTS idx_users_badminton_elo ON public.users(badminton_elo
 CREATE INDEX IF NOT EXISTS idx_users_cricket_elo ON public.users(cricket_elo DESC);
 CREATE INDEX IF NOT EXISTS idx_users_name ON public.users(name);
 CREATE INDEX IF NOT EXISTS idx_users_role ON public.users(role);
+CREATE INDEX IF NOT EXISTS idx_users_push_subscription ON public.users(id) WHERE push_subscription IS NOT NULL;
 
 -- Slots indexes
 CREATE INDEX IF NOT EXISTS idx_slots_date_sport ON public.slots(date, sport, status);

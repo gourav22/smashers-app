@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
 import { NextRequest, NextResponse } from 'next/server';
+import { sendPushToUser } from '@/lib/push-notifications-server';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL || "",
@@ -152,64 +153,9 @@ async function handleWaitlistAndRefund(bookingId: string, slotId: string, cancel
   }
 }
 
+// Replaced with sendPushToUser from @/lib/push-notifications-server
 async function sendPushNotification(userId: string, notification: { title: string; body: string; url: string }) {
-  try {
-    // Get user's push subscription
-    const { data: subscriptions } = await supabase
-      .from('push_subscriptions')
-      .select('*')
-      .eq('user_id', userId);
-
-    if (!subscriptions || subscriptions.length === 0) {
-      console.log('No push subscriptions for user:', userId);
-      return;
-    }
-
-    const webpush = require('web-push');
-
-    // Configure VAPID keys
-    webpush.setVapidDetails(
-      'mailto:admin@smashersclub.com',
-      process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY,
-      process.env.VAPID_PRIVATE_KEY
-    );
-
-    // Send to all user's devices
-    for (const subscription of subscriptions) {
-      try {
-        await webpush.sendNotification(
-          {
-            endpoint: subscription.endpoint,
-            keys: {
-              p256dh: subscription.p256dh,
-              auth: subscription.auth,
-            },
-          },
-          JSON.stringify({
-            title: notification.title,
-            body: notification.body,
-            icon: '/icon-192x192.png',
-            badge: '/icon-192x192.png',
-            data: {
-              url: notification.url,
-            },
-          })
-        );
-        console.log('✅ Push notification sent to user:', userId);
-      } catch (error) {
-        console.error('Failed to send push notification:', error);
-        // If subscription is invalid, remove it
-        if ((error as any).statusCode === 410) {
-          await supabase
-            .from('push_subscriptions')
-            .delete()
-            .eq('id', subscription.id);
-        }
-      }
-    }
-  } catch (error) {
-    console.error('Error sending push notification:', error);
-  }
+  await sendPushToUser(userId, notification);
 }
 
 async function processRefund(userId: string, amount: number) {

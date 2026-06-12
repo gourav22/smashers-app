@@ -7,6 +7,8 @@ import { getGradeEmoji, getGradeColor } from '@/lib/elo';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
 import { AnimatedCounter } from '@/components/AnimatedCounter';
+import { NotificationCenter } from '@/components/NotificationCenter';
+import { NotificationPrompt } from '@/components/NotificationPrompt';
 
 interface UserProfile {
   id: string;
@@ -179,13 +181,14 @@ export default function DashboardPage() {
             <h1 className="text-2xl font-bold text-gray-900">
               {process.env.NEXT_PUBLIC_CLUB_NAME || 'Smashers Club'}
             </h1>
-            <div className="flex gap-4 items-center">
-              <Link href="/settings" className="text-gray-600 hover:text-gray-900">
-                ⚙️ Settings
+            <div className="flex gap-2 items-center">
+              {user && <NotificationCenter userId={user.id} />}
+              <Link href="/settings" className="text-gray-600 hover:text-gray-900 p-2">
+                ⚙️
               </Link>
               <button
                 onClick={handleLogout}
-                className="text-gray-600 hover:text-gray-900"
+                className="text-gray-600 hover:text-gray-900 text-sm font-medium"
               >
                 Logout
               </button>
@@ -476,6 +479,9 @@ export default function DashboardPage() {
           </div>
         )}
       </main>
+
+      {/* Notification Opt-in Prompt */}
+      {user && <NotificationPrompt userId={user.id} />}
     </div>
   );
 }
