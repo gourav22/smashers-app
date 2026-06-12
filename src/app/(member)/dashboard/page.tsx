@@ -429,6 +429,14 @@ export default function DashboardPage() {
               )}
               {user.role === 'super_admin' && (
                 <Link
+                  href="/subscription-templates"
+                  className="bg-white/20 backdrop-blur-sm p-4 rounded-lg text-center font-semibold hover:bg-white/30 transition"
+                >
+                  📋 Subscriptions
+                </Link>
+              )}
+              {user.role === 'super_admin' && (
+                <Link
                   href="/matches"
                   className="bg-white/20 backdrop-blur-sm p-4 rounded-lg text-center font-semibold hover:bg-white/30 transition"
                 >
