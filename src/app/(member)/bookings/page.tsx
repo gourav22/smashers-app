@@ -37,6 +37,12 @@ export default function BookingsPage() {
   const [loading, setLoading] = useState(true);
   const [cancellingId, setCancellingId] = useState<string | null>(null);
   const [undoingId, setUndoingId] = useState<string | null>(null);
+  const [notification, setNotification] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+
+  const showNotification = (type: 'success' | 'error', message: string) => {
+    setNotification({ type, message });
+    setTimeout(() => setNotification(null), 3500);
+  };
 
   useEffect(() => {
     loadBookings();
@@ -184,10 +190,10 @@ export default function BookingsPage() {
         throw new Error(data.error || 'Failed to cancel booking');
       }
 
-      alert(data.message);
+      showNotification('success', data.message);
       await loadBookings();
     } catch (error: any) {
-      alert(error.message || 'Failed to cancel booking');
+      showNotification('error', error.message || 'Failed to cancel booking');
     } finally {
       setCancellingId(null);
     }
@@ -246,10 +252,10 @@ export default function BookingsPage() {
           .eq('booking_id', booking.id);
       }
 
-      alert('Booking restored successfully!');
+      showNotification('success', 'Booking restored successfully!');
       await loadBookings();
     } catch (error: any) {
-      alert(error.message || 'Failed to undo cancellation');
+      showNotification('error', error.message || 'Failed to undo cancellation');
     } finally {
       setUndoingId(null);
     }
@@ -278,6 +284,18 @@ export default function BookingsPage() {
       </header>
 
       <main className="max-w-7xl mx-auto px-4 py-8 sm:px-6 lg:px-8">
+        {notification && (
+          <div
+            className={`mb-6 rounded-lg border px-4 py-3 text-sm font-medium ${
+              notification.type === 'success'
+                ? 'border-green-200 bg-green-50 text-green-800'
+                : 'border-red-200 bg-red-50 text-red-800'
+            }`}
+          >
+            {notification.message}
+          </div>
+        )}
+
         {/* Confirmed Bookings */}
         <div className="mb-8">
           <h2 className="text-xl font-semibold text-gray-900 mb-4">
@@ -426,13 +444,13 @@ export default function BookingsPage() {
                         refund.status === 'pending' ? (
                           <div className="mt-3 p-2 bg-yellow-50 rounded text-xs">
                             <p className="font-semibold text-yellow-800">⏳ Refund Pending</p>
-                            <p className="text-yellow-700">€{(refund.amount / 100).toFixed(2)} will be refunded when slot fills</p>
+                            <p className="text-yellow-700">€{refund.amount.toFixed(2)} will be refunded when slot fills</p>
                             <p className="text-yellow-600">Expires: {new Date(refund.expires_at).toLocaleDateString()}</p>
                           </div>
                         ) : refund.status === 'processed' ? (
                           <div className="mt-3 p-2 bg-green-50 rounded text-xs">
                             <p className="font-semibold text-green-800">✅ Refund Processed</p>
-                            <p className="text-green-700">€{(refund.amount / 100).toFixed(2)} refunded</p>
+                            <p className="text-green-700">€{refund.amount.toFixed(2)} refunded</p>
                           </div>
                         ) : (
                           <div className="mt-3 p-2 bg-red-50 rounded text-xs">

@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { BOOKING_COST } from '@/lib/config';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
 const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "";
@@ -50,7 +51,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const bookingCost = parseInt(process.env.NEXT_PUBLIC_BOOKING_COST || '4');
+    const bookingCost = BOOKING_COST;
 
     // Call the database function that handles the entire transaction
     const { data, error } = await supabase.rpc('create_booking_transaction', {

@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { sendPushToUser } from '@/lib/push-notifications-server';
+import { BOOKING_COST } from '@/lib/config';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
 const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "";
@@ -65,7 +66,7 @@ export async function POST(request: Request) {
 
     console.log('🔑 Using SERVICE_ROLE key to bypass RLS');
     const supabase = createClient(supabaseUrl, serviceRoleKey);
-    const bookingCost = parseInt(process.env.NEXT_PUBLIC_BOOKING_COST || '4');
+    const bookingCost = BOOKING_COST;
     console.log('💰 Booking cost:', bookingCost);
 
     // Get user and slot data
@@ -91,13 +92,6 @@ export async function POST(request: Request) {
     const slot = slotResult.data;
 
     // Validations
-    if (user.balance < bookingCost) {
-      return NextResponse.json(
-        { error: `Insufficient balance. You need €${bookingCost}` },
-        { status: 400 }
-      );
-    }
-
     if (slot.status === 'cancelled') {
       return NextResponse.json(
         { error: 'This slot has been cancelled' },
@@ -125,14 +119,43 @@ export async function POST(request: Request) {
     if (existingBooking) {
       console.log('⚠️ Active booking already exists:', existingBooking.id, 'Status:', existingBooking.status);
       return NextResponse.json(
-        { error: 'You have already booked this slot' },
+        { error: existingBooking.status === 'waitlist' ? 'You are already in waitlist for this slot' : 'You have already booked this slot' },
         { status: 400 }
       );
     }
 
     if (slot.booked_user_ids.length >= slot.total_spots) {
+      // Slot is full: allow waitlist without deducting balance
+      const { error: waitlistError } = await supabase
+        .from('bookings')
+        .insert({
+          user_id: userId,
+          slot_id: slotId,
+          status: 'waitlist',
+          amount_paid: 0,
+        });
+
+      if (waitlistError) {
+        console.error('❌ Waitlist creation error:', waitlistError);
+        return NextResponse.json(
+          { error: waitlistError.message || 'Failed to join waitlist' },
+          { status: 500 }
+        );
+      }
+
       return NextResponse.json(
-        { error: 'This slot is full' },
+        {
+          success: true,
+          waitlist: true,
+          message: 'Slot is full. You have been added to waitlist.',
+        },
+        { status: 200 }
+      );
+    }
+
+    if (user.balance < bookingCost) {
+      return NextResponse.json(
+        { error: `Insufficient balance. You need €${bookingCost}` },
         { status: 400 }
       );
     }

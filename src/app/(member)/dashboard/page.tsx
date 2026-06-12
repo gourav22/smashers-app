@@ -9,6 +9,7 @@ import { motion } from 'framer-motion';
 import { AnimatedCounter } from '@/components/AnimatedCounter';
 import { NotificationCenter } from '@/components/NotificationCenter';
 import { NotificationPrompt } from '@/components/NotificationPrompt';
+import { BOOKING_COST } from '@/lib/config';
 
 interface UserProfile {
   id: string;
@@ -284,7 +285,7 @@ export default function DashboardPage() {
                   €{user.balance.toFixed(2)}
                 </p>
                 <p className="text-sm text-gray-600">
-                  {Math.floor(user.balance / 4)} games available
+                  {Math.floor(user.balance / BOOKING_COST)} games available
                 </p>
               </div>
               <Link
@@ -301,7 +302,7 @@ export default function DashboardPage() {
                 {showTransactions ? '▲ Hide Transaction History' : '💰 View Transaction History'}
               </button>
 
-              {user.balance < 4 && (
+              {user.balance < BOOKING_COST && (
                 <p className="text-xs text-red-600">
                   ⚠️ Low balance! Top up to book slots.
                 </p>

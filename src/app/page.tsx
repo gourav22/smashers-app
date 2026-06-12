@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { BOOKING_COST, formatCurrencyAmount } from '@/lib/config';
 
 export default function Home() {
   const clubName = process.env.NEXT_PUBLIC_CLUB_NAME || 'Smashers Club';
@@ -79,7 +80,7 @@ export default function Home() {
                 2
               </div>
               <h4 className="font-semibold text-gray-900 mb-2">Top Up</h4>
-              <p className="text-sm text-gray-600">Add balance to book slots (€4 per game)</p>
+              <p className="text-sm text-gray-600">Add balance to book slots (€{formatCurrencyAmount(BOOKING_COST)} per game)</p>
             </div>
 
             <div className="text-center">

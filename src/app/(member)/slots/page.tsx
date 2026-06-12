@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase/client';
+import { BOOKING_COST, formatCurrencyAmount } from '@/lib/config';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 
@@ -19,11 +20,18 @@ interface Slot {
 export default function SlotsPage() {
   const router = useRouter();
   const [slots, setSlots] = useState<Slot[]>([]);
+  const [waitlistedSlotIds, setWaitlistedSlotIds] = useState<string[]>([]);
   const [userBalance, setUserBalance] = useState(0);
   const [userId, setUserId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [booking, setBooking] = useState<string | null>(null);
   const [filter, setFilter] = useState<'all' | 'badminton' | 'cricket'>('all');
+  const [notification, setNotification] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+
+  const showNotification = (type: 'success' | 'error', message: string) => {
+    setNotification({ type, message });
+    setTimeout(() => setNotification(null), 3500);
+  };
 
   useEffect(() => {
     loadData();
@@ -104,6 +112,15 @@ export default function SlotsPage() {
       if (error) throw error;
 
       setSlots(slotsData || []);
+
+      // Track slots where user is already in waitlist
+      const { data: waitlistData } = await supabase
+        .from('bookings')
+        .select('slot_id')
+        .eq('user_id', authData.user.id)
+        .eq('status', 'waitlist');
+
+      setWaitlistedSlotIds((waitlistData || []).map((row) => row.slot_id));
     } catch (error) {
       console.error('Error loading slots:', error);
     } finally {
@@ -114,13 +131,16 @@ export default function SlotsPage() {
   const handleBookSlot = async (slotId: string) => {
     if (!userId) return;
 
+    const selectedSlot = slots.find((slot) => slot.id === slotId);
+    const isFullSlot = !!selectedSlot && selectedSlot.booked_user_ids.length >= selectedSlot.total_spots;
+
     setBooking(slotId);
 
     try {
-      const bookingCost = 4; // Fixed booking cost
+      const bookingCost = BOOKING_COST;
 
-      if (userBalance < bookingCost) {
-        alert(`Insufficient balance! You need €${bookingCost} to book a slot.`);
+      if (!isFullSlot && userBalance < bookingCost) {
+        showNotification('error', `Insufficient balance! You need €${bookingCost} to book a slot.`);
         return;
       }
 
@@ -160,10 +180,14 @@ export default function SlotsPage() {
         throw new Error(result.error || 'Failed to book slot');
       }
 
-      alert('Slot booked successfully! €4 deducted from your balance.');
+      if (result.waitlist) {
+        showNotification('success', 'Slot is full. You have been added to waitlist.');
+      } else {
+        showNotification('success', `Slot booked successfully! €${formatCurrencyAmount(bookingCost)} deducted from your balance.`);
+      }
       loadData(); // Reload data
     } catch (error: any) {
-      alert(error.message || 'Failed to book slot');
+      showNotification('error', error.message || 'Failed to book slot');
     } finally {
       setBooking(null);
     }
@@ -171,6 +195,10 @@ export default function SlotsPage() {
 
   const isSlotBookedByUser = (slot: Slot) => {
     return userId && slot.booked_user_ids.includes(userId);
+  };
+
+  const isSlotWaitlistedByUser = (slot: Slot) => {
+    return waitlistedSlotIds.includes(slot.id);
   };
 
   const filteredSlots = slots.filter((slot) => {
@@ -197,6 +225,18 @@ export default function SlotsPage() {
       </header>
 
       <main className="max-w-7xl mx-auto px-4 py-8 sm:px-6 lg:px-8">
+        {notification && (
+          <div
+            className={`mb-6 rounded-lg border px-4 py-3 text-sm font-medium ${
+              notification.type === 'success'
+                ? 'border-green-200 bg-green-50 text-green-800'
+                : 'border-red-200 bg-red-50 text-red-800'
+            }`}
+          >
+            {notification.message}
+          </div>
+        )}
+
         {/* Balance Banner */}
         <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
           <div className="flex justify-between items-center">
@@ -207,7 +247,7 @@ export default function SlotsPage() {
             <div className="text-right">
               <p className="text-sm text-gray-600">Games Available</p>
               <p className="text-2xl font-bold text-green-600">
-                {Math.floor((userBalance || 0) / 4)}
+                {Math.floor((userBalance || 0) / BOOKING_COST)}
               </p>
             </div>
           </div>
@@ -259,6 +299,7 @@ export default function SlotsPage() {
               const availableSpots = slot.total_spots - slot.booked_user_ids.length;
               const isFull = availableSpots === 0;
               const isBookedByMe = isSlotBookedByUser(slot);
+              const isWaitlistedByMe = isSlotWaitlistedByUser(slot);
               const isAlmostFull = availableSpots <= 2 && !isFull;
 
               return (
@@ -330,20 +371,28 @@ export default function SlotsPage() {
                       >
                         Already Booked
                       </button>
-                    ) : isFull ? (
+                    ) : isWaitlistedByMe ? (
                       <button
                         disabled
                         className="w-full bg-gray-300 text-gray-600 py-2 rounded-lg font-semibold cursor-not-allowed"
                       >
-                        Full (Waitlist Coming Soon)
+                        Already Waitlisted
+                      </button>
+                    ) : isFull ? (
+                      <button
+                        onClick={() => handleBookSlot(slot.id)}
+                        disabled={booking === slot.id}
+                        className="w-full bg-amber-600 text-white py-2 rounded-lg font-semibold hover:bg-amber-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition"
+                      >
+                        {booking === slot.id ? 'Joining Waitlist...' : 'Join Waitlist'}
                       </button>
                     ) : (
                       <button
                         onClick={() => handleBookSlot(slot.id)}
-                        disabled={booking === slot.id || userBalance < 4}
+                        disabled={booking === slot.id || userBalance < BOOKING_COST}
                         className="w-full bg-blue-600 text-white py-2 rounded-lg font-semibold hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition"
                       >
-                        {booking === slot.id ? 'Booking...' : 'Book for €4'}
+                        {booking === slot.id ? 'Booking...' : `Book for €${formatCurrencyAmount(BOOKING_COST)}`}
                       </button>
                     )}
                   </div>

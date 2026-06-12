@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
+import { BOOKING_COST } from '@/lib/config';
 
 import { NextRequest, NextResponse } from 'next/server';
 
@@ -90,7 +91,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Calculate refund (full booking cost)
-    const refundAmount = booking.amount_paid || parseFloat(process.env.NEXT_PUBLIC_BOOKING_COST || '4');
+    const refundAmount = booking.amount_paid || BOOKING_COST;
 
     // Cancel the booking
     const { error: cancelError } = await supabase
