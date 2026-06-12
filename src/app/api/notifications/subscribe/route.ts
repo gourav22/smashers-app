@@ -80,21 +80,6 @@ export async function DELETE(request: NextRequest) {
     }
 
     const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL || "", process.env.SUPABASE_SERVICE_ROLE_KEY || "");
-      return NextResponse.json(
-        { error: 'Missing userId' },
-        { status: 400 }
-      );
-    }
-
-    // Verify user is authenticated
-    const { data: { user } } = await supabase.auth.getUser();
-
-    if (!user || user.id !== userId) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
-    }
 
     // Remove subscription from database
     const { error } = await supabase
