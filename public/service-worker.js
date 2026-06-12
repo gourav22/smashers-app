@@ -1,17 +1,10 @@
 // Service Worker for Sports Club App
-const CACHE_NAME = 'smashers-club-v1';
-const RUNTIME_CACHE = 'smashers-runtime-v1';
+const CACHE_NAME = 'smashers-club-v2';
+const RUNTIME_CACHE = 'smashers-runtime-v2';
 
 // Assets to cache on install
 const STATIC_ASSETS = [
   '/',
-  '/dashboard',
-  '/slots',
-  '/leaderboard',
-  '/achievements',
-  '/bookings',
-  '/matches',
-  '/settings',
   '/manifest.json',
   '/icons/icon.svg',
 ];
@@ -69,6 +62,42 @@ self.addEventListener('fetch', (event) => {
 
   // Skip API calls and auth - always go to network
   if (url.pathname.startsWith('/api/') || url.pathname.startsWith('/auth/')) {
+    return;
+  }
+
+  const isDynamicAppRoute =
+    request.mode === 'navigate' &&
+    (url.pathname.startsWith('/dashboard') ||
+      url.pathname.startsWith('/slots') ||
+      url.pathname.startsWith('/bookings') ||
+      url.pathname.startsWith('/matches') ||
+      url.pathname.startsWith('/leaderboard') ||
+      url.pathname.startsWith('/achievements') ||
+      url.pathname.startsWith('/settings') ||
+      url.pathname.startsWith('/subscription') ||
+      url.pathname.startsWith('/admin'));
+
+  // Dynamic app pages should be network-first to avoid stale ELO/booking/match data.
+  if (isDynamicAppRoute) {
+    event.respondWith(
+      fetch(request)
+        .then((response) => {
+          if (response && response.status === 200) {
+            const responseToCache = response.clone();
+            caches.open(RUNTIME_CACHE).then((cache) => cache.put(request, responseToCache));
+          }
+          return response;
+        })
+        .catch(async () => {
+          const cachedResponse = await caches.match(request);
+          if (cachedResponse) return cachedResponse;
+
+          return new Response(
+            '<h1>Offline</h1><p>Please check your internet connection.</p>',
+            { headers: { 'Content-Type': 'text/html' } }
+          );
+        })
+    );
     return;
   }
 

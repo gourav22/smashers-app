@@ -25,7 +25,7 @@ export default function CompleteProfilePage() {
       const { data: { user } } = await supabase.auth.getUser();
 
       if (!user) {
-        router.push('/register-social');
+        router.push('/register');
         return;
       }
 
