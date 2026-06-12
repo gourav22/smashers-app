@@ -261,65 +261,60 @@ export async function POST(request: Request) {
         console.log(`✅ Processing refund for user ${refund.user_id} (bookings ${updatedBookedIds.length} exceeded minimum ${minimumBookingsBeforeRefunds})`);
 
         // Get user's current balance
-      const { data: refundUser } = await supabase
-        .from('users')
-        .select('balance')
-        .eq('id', refund.user_id)
-        .single();
-
-      if (refundUser) {
-        const refundBalance = refundUser.balance + refund.amount;
-        // Get user's current balance
         const { data: refundUser } = await supabase
           .from('users')
           .select('balance')
           .eq('id', refund.user_id)
           .single();
 
-        // Update balance
-        await supabase
-          .from('users')
-          .update({ balance: refundBalance })
-          .eq('id', refund.user_id);
+        if (refundUser) {
+          const refundBalance = refundUser.balance + refund.amount;
 
-        // Create transaction record
-        await supabase.from('transactions').insert({
-          user_id: refund.user_id,
-          type: 'refund',
-          amount: refund.amount,
-          balance_after: refundBalance,
-          metadata: {
-            reason: 'Cancellation refund - replacement found',
-            slot_id: slotId,
-            replacement_user_id: userId,
-          },
-        });
+          // Update balance
+          await supabase
+            .from('users')
+            .update({ balance: refundBalance })
+            .eq('id', refund.user_id);
 
-        // Mark refund as processed
-        await supabase
-          .from('pending_refunds')
-          .update({
-            status: 'processed',
-            processed_at: new Date().toISOString(),
-          })
-          .eq('id', refund.id);
+          // Create transaction record
+          await supabase.from('transactions').insert({
+            user_id: refund.user_id,
+            type: 'refund',
+            amount: refund.amount,
+            balance_after: refundBalance,
+            metadata: {
+              reason: 'Cancellation refund - replacement found',
+              slot_id: slotId,
+              replacement_user_id: userId,
+            },
+          });
 
-        // Notify user about refund (in-app)
-        await supabase.from('notifications').insert({
-          user_id: refund.user_id,
-          type: 'refund',
-          title: 'Refund Processed',
-          message: `€${refund.amount.toFixed(2)} has been refunded. A replacement was found for your cancelled booking.`,
-        });
+          // Mark refund as processed
+          await supabase
+            .from('pending_refunds')
+            .update({
+              status: 'processed',
+              processed_at: new Date().toISOString(),
+            })
+            .eq('id', refund.id);
 
-        // Send push notification
-        await sendPushNotification(refund.user_id, {
-          title: '💰 Refund Processed',
-          body: `€${refund.amount} refunded - replacement found!`,
-          url: '/bookings',
-        });
+          // Notify user about refund (in-app)
+          await supabase.from('notifications').insert({
+            user_id: refund.user_id,
+            type: 'refund',
+            title: 'Refund Processed',
+            message: `€${refund.amount.toFixed(2)} has been refunded. A replacement was found for your cancelled booking.`,
+          });
 
-        console.log(`✅ Processed refund for user ${refund.user_id}`);
+          // Send push notification
+          await sendPushNotification(refund.user_id, {
+            title: '💰 Refund Processed',
+            body: `€${refund.amount} refunded - replacement found!`,
+            url: '/bookings',
+          });
+
+          console.log(`✅ Processed refund for user ${refund.user_id}`);
+        }
       }
     } else {
       if (numberOfPendingRefunds > 0) {
