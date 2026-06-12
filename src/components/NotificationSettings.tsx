@@ -37,16 +37,27 @@ export function NotificationSettings({ userId }: { userId: string }) {
 
       if (subscription && userId) {
         await saveSubscriptionToServer(subscription, userId);
-        setPermission('granted');
-        setEnabled(true);
         localStorage.setItem('notification-enabled', 'true');
+
+        // Re-check status after enabling
+        checkNotificationStatus();
+
         alert('✅ Push notifications enabled! You\'ll receive updates about bookings, matches, and more.');
       } else {
-        alert('❌ Could not enable notifications. Please check your browser settings.');
+        // Re-check status to see if permission was denied
+        checkNotificationStatus();
+
+        const perm = getNotificationPermission();
+        if (perm === 'denied') {
+          alert('❌ Notifications were blocked. Please allow notifications in your browser settings and try again.');
+        } else {
+          alert('❌ Could not enable notifications. Please check your browser settings or try again.');
+        }
       }
     } catch (error) {
       console.error('Failed to enable notifications:', error);
-      alert('Failed to enable notifications. Please check your browser permissions.');
+      checkNotificationStatus();
+      alert('❌ Failed to enable notifications. Please check your browser permissions and try again.');
     } finally {
       setLoading(false);
     }

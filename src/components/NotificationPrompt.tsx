@@ -36,12 +36,27 @@ export function NotificationPrompt({ userId }: { userId: string }) {
 
       if (subscription && userId) {
         await saveSubscriptionToServer(subscription, userId);
-        setShow(false);
         localStorage.setItem('notification-enabled', 'true');
+        setShow(false);
+      } else {
+        // User denied permission or subscription failed
+        // Close the popup regardless
+        setShow(false);
+        localStorage.setItem('notification-prompt-dismissed', 'true');
+
+        // Check if permission was denied
+        const permission = getNotificationPermission();
+        if (permission === 'denied') {
+          alert('Notifications were blocked. You can enable them later in Settings or your browser settings.');
+        } else {
+          alert('Could not enable notifications. Please try again from Settings.');
+        }
       }
     } catch (error) {
       console.error('Failed to enable notifications:', error);
-      alert('Failed to enable notifications. Please try again.');
+      setShow(false);
+      localStorage.setItem('notification-prompt-dismissed', 'true');
+      alert('Failed to enable notifications. You can try again from Settings.');
     } finally {
       setLoading(false);
     }
