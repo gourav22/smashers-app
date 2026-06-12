@@ -108,6 +108,12 @@ export default function DashboardPage() {
         profile.sports_played = ['badminton', 'cricket'];
       }
 
+      // Check if phone number is missing - redirect to settings to add it
+      if (!profile.phone) {
+        router.push('/settings?message=Please%20add%20your%20phone%20number');
+        return;
+      }
+
       setUser(profile);
 
       // Load recent transactions

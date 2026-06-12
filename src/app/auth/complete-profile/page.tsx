@@ -39,12 +39,12 @@ export default function CompleteProfilePage() {
       if (profile) {
         // Profile exists, check if phone is set
         if (profile.phone) {
-          // Profile complete, redirect to dashboard
+          // Profile complete with phone, redirect to dashboard
           router.push('/dashboard');
           return;
         }
 
-        // Profile exists but phone missing, pre-fill name
+        // Profile exists but phone missing, ask to add it
         setFormData({
           name: profile.name || user.user_metadata.full_name || user.email?.split('@')[0] || '',
           phone: '',

@@ -2,21 +2,30 @@
 
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase/client';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { InstallButton } from '@/components/InstallButton';
 import { NotificationSettings } from '@/components/NotificationSettings';
+import PhoneInput from '@/components/PhoneInput';
 
 export default function SettingsPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [user, setUser] = useState<any>(null);
   const [sportsPlayed, setSportsPlayed] = useState<string[]>([]);
+  const [phone, setPhone] = useState('');
+  const [message, setMessage] = useState('');
 
   useEffect(() => {
     loadUser();
-  }, []);
+    // Get message from query params
+    const msg = searchParams.get('message');
+    if (msg) {
+      setMessage(decodeURIComponent(msg));
+    }
+  }, [searchParams]);
 
   const loadUser = async () => {
     try {
@@ -36,6 +45,7 @@ export default function SettingsPage() {
       if (profile) {
         setUser(profile);
         setSportsPlayed(profile.sports_played || ['badminton', 'cricket']);
+        setPhone(profile.phone || '');
       }
     } catch (error) {
       console.error('Error loading user:', error);
@@ -63,12 +73,20 @@ export default function SettingsPage() {
       return;
     }
 
+    if (!phone) {
+      alert('Phone number is required');
+      return;
+    }
+
     setSaving(true);
 
     try {
       const { error } = await supabase
         .from('users')
-        .update({ sports_played: sportsPlayed })
+        .update({ 
+          sports_played: sportsPlayed,
+          phone: phone,
+        })
         .eq('id', user.id);
 
       if (error) throw error;
@@ -105,6 +123,12 @@ export default function SettingsPage() {
       </header>
 
       <main className="max-w-3xl mx-auto px-4 py-8 sm:px-6 lg:px-8">
+        {/* Required Phone Number Message */}
+        {message && (
+          <div className="bg-orange-50 border-2 border-orange-400 text-orange-800 px-4 py-4 rounded-lg mb-6">
+            <p className="font-semibold">⚠️ {message}</p>
+          </div>
+        )}
         {/* PWA Install Section */}
         <div className="bg-gradient-to-r from-blue-500 to-indigo-600 rounded-lg shadow-lg p-6 mb-6 text-white">
           <div className="flex items-start gap-4">
@@ -134,6 +158,27 @@ export default function SettingsPage() {
             <NotificationSettings userId={user.id} />
           </div>
         )}
+
+        {/* Phone Number Section */}
+        <div className="bg-white rounded-lg shadow p-6 mb-6">
+          <h2 className="text-xl font-semibold text-gray-900 mb-6">Contact Information</h2>
+
+          <div className="space-y-4">
+            <div>
+              <label htmlFor="phone" className="block text-sm font-medium text-gray-700 mb-2">
+                Phone Number *
+              </label>
+              <PhoneInput
+                value={phone}
+                onChange={(value) => setPhone(value)}
+                required={true}
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                Required for club communications and notifications
+              </p>
+            </div>
+          </div>
+        </div>
 
         <div className="bg-white rounded-lg shadow p-6">
           <h2 className="text-xl font-semibold text-gray-900 mb-6">Sports Preferences</h2>
@@ -200,7 +245,7 @@ export default function SettingsPage() {
           <div className="flex gap-3">
             <button
               onClick={handleSave}
-              disabled={saving || sportsPlayed.length === 0}
+              disabled={saving || sportsPlayed.length === 0 || !phone}
               className="flex-1 bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
             >
               {saving ? 'Saving...' : 'Save Settings'}
