@@ -160,12 +160,12 @@ export default function SlotsPage() {
           <div className="flex justify-between items-center">
             <div>
               <p className="text-sm text-gray-600">Your Balance</p>
-              <p className="text-2xl font-bold text-gray-900">€{userBalance.toFixed(2)}</p>
+              <p className="text-2xl font-bold text-gray-900">€{(userBalance || 0).toFixed(2)}</p>
             </div>
             <div className="text-right">
               <p className="text-sm text-gray-600">Games Available</p>
               <p className="text-2xl font-bold text-green-600">
-                {Math.floor(userBalance / 4)}
+                {Math.floor((userBalance || 0) / 4)}
               </p>
             </div>
           </div>
