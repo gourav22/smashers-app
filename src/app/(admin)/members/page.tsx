@@ -407,13 +407,16 @@ export default function MembersPage() {
                   type="number"
                   step="0.01"
                   value={editForm.balance}
-                  onChange={(e) => setEditForm({ ...editForm, balance: parseFloat(e.target.value) })}
+                  onChange={(e) => {
+                    const value = e.target.value === '' ? 0 : parseFloat(e.target.value);
+                    setEditForm({ ...editForm, balance: isNaN(value) ? 0 : value });
+                  }}
                   required
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900"
                 />
                 <p className="text-xs text-gray-500 mt-1">
-                  Change: {editForm.balance - selectedMember.balance > 0 ? '+' : ''}€
-                  {(editForm.balance - selectedMember.balance).toFixed(2)}
+                  Change: {(editForm.balance || 0) - selectedMember.balance > 0 ? '+' : ''}€
+                  {((editForm.balance || 0) - selectedMember.balance).toFixed(2)}
                 </p>
               </div>
 
