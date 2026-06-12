@@ -83,14 +83,24 @@ export default function SlotsPage() {
       }
 
       // Get auth token
-      const session = await supabase.auth.getSession();
-      const token = session.data.session?.access_token;
+      console.log('🔐 Getting session...');
+      const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+
+      if (sessionError) {
+        console.error('❌ Session error:', sessionError);
+        throw new Error('Failed to get session. Please log in again.');
+      }
+
+      const token = sessionData.session?.access_token;
+      console.log('🎫 Token exists:', !!token);
 
       if (!token) {
-        throw new Error('No authentication token found');
+        console.error('❌ No token found. Session:', sessionData.session);
+        throw new Error('No authentication token found. Please log in again.');
       }
 
       // Call booking API with token
+      console.log('📞 Calling booking API...');
       const response = await fetch('/api/bookings/create', {
         method: 'POST',
         headers: {
@@ -100,7 +110,9 @@ export default function SlotsPage() {
         body: JSON.stringify({ slotId, userId }),
       });
 
+      console.log('📡 Response status:', response.status);
       const result = await response.json();
+      console.log('📦 Response data:', result);
 
       if (!response.ok) {
         throw new Error(result.error || 'Failed to book slot');

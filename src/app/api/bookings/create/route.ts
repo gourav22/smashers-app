@@ -7,10 +7,14 @@ const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY || "";
 
 export async function POST(request: Request) {
   try {
+    console.log('🔵 Booking API called');
     const { slotId, userId } = await request.json();
     const token = request.headers.get('authorization')?.replace('Bearer ', '');
 
+    console.log('📦 Request data:', { slotId, userId: userId?.substring(0, 8), hasToken: !!token });
+
     if (!slotId || !userId) {
+      console.log('❌ Missing slotId or userId');
       return NextResponse.json(
         { error: 'Missing slotId or userId' },
         { status: 400 }
@@ -18,6 +22,7 @@ export async function POST(request: Request) {
     }
 
     if (!token) {
+      console.log('❌ No token provided');
       return NextResponse.json(
         { error: 'Unauthorized: No token provided' },
         { status: 401 }
@@ -25,15 +30,19 @@ export async function POST(request: Request) {
     }
 
     // Use anon client with token to verify user identity
+    console.log('🔐 Verifying user token...');
     const supabaseAuth = createClient(supabaseUrl, supabaseKey);
     const { data: userData, error: authError } = await supabaseAuth.auth.getUser(token);
 
     if (authError || !userData.user) {
+      console.log('❌ Auth error:', authError?.message);
       return NextResponse.json(
         { error: 'Unauthorized: Invalid token' },
         { status: 401 }
       );
     }
+
+    console.log('✅ User verified:', userData.user.id.substring(0, 8));
 
     // Verify user is trying to book for themselves
     if (userData.user.id !== userId) {
@@ -43,23 +52,39 @@ export async function POST(request: Request) {
       );
     }
 
-    // Use service role key for database operations (bypasses RLS)
-    const supabase = createClient(supabaseUrl, serviceRoleKey);
+    // Use service role key if available, otherwise use anon key with user's auth
+    // Since we applied RLS policies, the anon key should work with proper authentication
+    const dbKey = serviceRoleKey || supabaseKey;
+    console.log('🔑 Using database key:', serviceRoleKey ? 'SERVICE_ROLE' : 'ANON');
+
+    const supabase = createClient(supabaseUrl, dbKey, {
+      global: {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      },
+    });
     const bookingCost = parseInt(process.env.NEXT_PUBLIC_BOOKING_COST || '4');
+    console.log('💰 Booking cost:', bookingCost);
 
     // Get user and slot data
+    console.log('📊 Fetching user and slot data...');
     const [userResult, slotResult] = await Promise.all([
       supabase.from('users').select('balance').eq('id', userId).single(),
       supabase.from('slots').select('*').eq('id', slotId).single(),
     ]);
 
     if (userResult.error) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 });
+      console.log('❌ User fetch error:', userResult.error);
+      return NextResponse.json({ error: 'User not found', details: userResult.error.message }, { status: 404 });
     }
 
     if (slotResult.error) {
-      return NextResponse.json({ error: 'Slot not found' }, { status: 404 });
+      console.log('❌ Slot fetch error:', slotResult.error);
+      return NextResponse.json({ error: 'Slot not found', details: slotResult.error.message }, { status: 404 });
     }
+
+    console.log('✅ Data fetched - Balance:', userResult.data.balance, 'Slot:', slotResult.data.id.substring(0, 8));
 
     const user = userResult.data;
     const slot = slotResult.data;
@@ -86,6 +111,23 @@ export async function POST(request: Request) {
       );
     }
 
+    // Check if booking already exists (in case of partial transaction)
+    console.log('🔍 Checking for existing booking...');
+    const { data: existingBooking } = await supabase
+      .from('bookings')
+      .select('id, status')
+      .eq('user_id', userId)
+      .eq('slot_id', slotId)
+      .single();
+
+    if (existingBooking) {
+      console.log('⚠️ Booking already exists:', existingBooking.id);
+      return NextResponse.json(
+        { error: 'You have already booked this slot' },
+        { status: 400 }
+      );
+    }
+
     if (slot.booked_user_ids.length >= slot.total_spots) {
       return NextResponse.json(
         { error: 'This slot is full' },
@@ -97,6 +139,7 @@ export async function POST(request: Request) {
     // For MVP, we'll do sequential updates
 
     // 1. Create booking record
+    console.log('💾 Creating booking record...');
     const { error: bookingError } = await supabase
       .from('bookings')
       .insert({
@@ -107,13 +150,26 @@ export async function POST(request: Request) {
       });
 
     if (bookingError) {
+      console.error('❌ Booking creation error:', bookingError);
+
+      // Handle duplicate booking error specifically
+      if (bookingError.code === '23505') {
+        return NextResponse.json(
+          { error: 'You have already booked this slot' },
+          { status: 400 }
+        );
+      }
+
       return NextResponse.json(
-        { error: 'Failed to create booking' },
+        { error: 'Failed to create booking', details: bookingError.message },
         { status: 500 }
       );
     }
 
+    console.log('✅ Booking created');
+
     // 2. Update slot (add user to booked_user_ids)
+    console.log('🎰 Updating slot...');
     const updatedBookedIds = [...slot.booked_user_ids, userId];
     const newStatus = updatedBookedIds.length >= slot.total_spots ? 'full' : 'open';
 
@@ -126,10 +182,13 @@ export async function POST(request: Request) {
       .eq('id', slotId);
 
     if (slotError) {
-      console.error('Error updating slot:', slotError);
+      console.error('❌ Error updating slot:', slotError);
+    } else {
+      console.log('✅ Slot updated');
     }
 
     // 3. Deduct balance
+    console.log('💸 Deducting balance...');
     const newBalance = user.balance - bookingCost;
 
     const { error: balanceError } = await supabase
@@ -138,7 +197,9 @@ export async function POST(request: Request) {
       .eq('id', userId);
 
     if (balanceError) {
-      console.error('Error updating balance:', balanceError);
+      console.error('❌ Error updating balance:', balanceError);
+    } else {
+      console.log('✅ Balance updated to:', newBalance);
     }
 
     // 4. Create transaction record
@@ -156,15 +217,16 @@ export async function POST(request: Request) {
       console.error('Error creating transaction:', transactionError);
     }
 
+    console.log('🎉 Booking completed successfully!');
     return NextResponse.json({
       success: true,
       message: 'Slot booked successfully',
       newBalance,
     });
   } catch (error) {
-    console.error('Booking error:', error);
+    console.error('❌ Booking error:', error);
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { error: 'Internal server error', details: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 }
     );
   }
