@@ -46,7 +46,6 @@ export default function BookingsPage() {
   const [loading, setLoading] = useState(true);
   const [cancellingId, setCancellingId] = useState<string | null>(null);
   const [undoingId, setUndoingId] = useState<string | null>(null);
-  const [showTransactions, setShowTransactions] = useState(false);
 
   useEffect(() => {
     loadBookings();
@@ -223,81 +222,14 @@ export default function BookingsPage() {
         <div className="max-w-7xl mx-auto px-4 py-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center">
             <h1 className="text-2xl font-bold text-gray-900">My Bookings</h1>
-            <div className="flex gap-4 items-center">
-              <button
-                onClick={() => setShowTransactions(!showTransactions)}
-                className="text-sm bg-gray-100 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-200"
-              >
-                {showTransactions ? '📅 Show Bookings' : '💰 Transaction History'}
-              </button>
-              <Link href="/dashboard" className="text-blue-600 hover:text-blue-700">
-                ← Back to Dashboard
-              </Link>
-            </div>
+            <Link href="/dashboard" className="text-blue-600 hover:text-blue-700">
+              ← Back to Dashboard
+            </Link>
           </div>
         </div>
       </header>
 
       <main className="max-w-7xl mx-auto px-4 py-8 sm:px-6 lg:px-8">
-        {showTransactions ? (
-          /* Transaction History */
-          <div>
-            <h2 className="text-xl font-semibold text-gray-900 mb-4">
-              💰 Transaction History ({transactions.length})
-            </h2>
-            {transactions.length === 0 ? (
-              <div className="bg-white rounded-lg shadow p-8 text-center">
-                <p className="text-gray-600">No transactions yet</p>
-              </div>
-            ) : (
-              <div className="bg-white rounded-lg shadow overflow-hidden">
-                <table className="min-w-full divide-y divide-gray-200">
-                  <thead className="bg-gray-50">
-                    <tr>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Type</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Amount</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Balance After</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Details</th>
-                    </tr>
-                  </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
-                    {transactions.map((txn) => (
-                      <tr key={txn.id}>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                          {new Date(txn.created_at).toLocaleDateString()}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm">
-                          <span className={`px-2 py-1 rounded text-xs font-semibold ${
-                            txn.type === 'topup' ? 'bg-green-100 text-green-800' :
-                            txn.type === 'refund' ? 'bg-blue-100 text-blue-800' :
-                            txn.type === 'booking' ? 'bg-red-100 text-red-800' :
-                            'bg-gray-100 text-gray-800'
-                          }`}>
-                            {txn.type}
-                          </span>
-                        </td>
-                        <td className={`px-6 py-4 whitespace-nowrap text-sm font-medium ${
-                          txn.amount > 0 ? 'text-green-600' : 'text-red-600'
-                        }`}>
-                          {txn.amount > 0 ? '+' : ''}€{txn.amount.toFixed(2)}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                          €{txn.balance_after.toFixed(2)}
-                        </td>
-                        <td className="px-6 py-4 text-sm text-gray-500">
-                          {txn.metadata?.reason || '-'}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </div>
-        ) : (
-          /* Bookings View */
-          <>
         {/* Confirmed Bookings */}
         <div className="mb-8">
           <h2 className="text-xl font-semibold text-gray-900 mb-4">
@@ -487,8 +419,6 @@ export default function BookingsPage() {
               Browse Available Slots
             </Link>
           </div>
-        )}
-        </>
         )}
       </main>
     </div>
