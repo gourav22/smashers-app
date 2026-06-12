@@ -47,7 +47,7 @@ DELETE FROM public.auto_booking_logs;
 DELETE FROM public.subscriptions;
 SELECT 'Step 1.4: Cleared all subscriptions' AS status;
 
--- Clear matches
+-- Clear matches (before clearing created_by reference)
 DELETE FROM public.matches;
 SELECT 'Step 1.5: Cleared all matches' AS status;
 
@@ -55,7 +55,7 @@ SELECT 'Step 1.5: Cleared all matches' AS status;
 DELETE FROM public.notifications;
 SELECT 'Step 1.6: Cleared all notifications' AS status;
 
--- Clear audit logs
+-- Clear audit logs (before clearing admin_user_id reference)
 DELETE FROM public.audit_logs;
 SELECT 'Step 1.7: Cleared all audit logs' AS status;
 
@@ -63,13 +63,14 @@ SELECT 'Step 1.7: Cleared all audit logs' AS status;
 -- STEP 2: RESET SLOTS
 -- ====================
 
--- Reset all slots to empty (preserve the slots themselves)
+-- Reset all slots to empty and clear created_by reference
 UPDATE public.slots
 SET
   booked_user_ids = '{}',
   status = 'open',
-  waitlist = '[]';
-SELECT 'Step 2: Reset all slots to empty' AS status;
+  waitlist = '[]',
+  created_by = NULL;
+SELECT 'Step 2: Reset all slots to empty and clear created_by' AS status;
 
 -- ====================
 -- STEP 3: RESET SUBSCRIPTION TEMPLATES
