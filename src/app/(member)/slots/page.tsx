@@ -27,6 +27,48 @@ export default function SlotsPage() {
 
   useEffect(() => {
     loadData();
+
+    // Set up real-time subscription for slot updates
+    const slotsChannel = supabase
+      .channel('slots-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*', // Listen to all events (INSERT, UPDATE, DELETE)
+          schema: 'public',
+          table: 'slots',
+        },
+        (payload) => {
+          console.log('Slot change detected:', payload);
+          // Reload data when any slot changes
+          loadData();
+        }
+      )
+      .subscribe();
+
+    // Also listen to bookings table for real-time booking updates
+    const bookingsChannel = supabase
+      .channel('bookings-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*', // Listen to all events (INSERT, UPDATE, DELETE)
+          schema: 'public',
+          table: 'bookings',
+        },
+        (payload) => {
+          console.log('Booking change detected:', payload);
+          // Reload data when any booking changes
+          loadData();
+        }
+      )
+      .subscribe();
+
+    // Cleanup subscriptions on unmount
+    return () => {
+      supabase.removeChannel(slotsChannel);
+      supabase.removeChannel(bookingsChannel);
+    };
   }, []); // Empty dependency - run once on mount
 
   const loadData = async () => {

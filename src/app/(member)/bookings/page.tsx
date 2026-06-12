@@ -40,6 +40,64 @@ export default function BookingsPage() {
 
   useEffect(() => {
     loadBookings();
+
+    // Set up real-time subscriptions for booking updates
+    const bookingsChannel = supabase
+      .channel('user-bookings-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'bookings',
+        },
+        (payload) => {
+          console.log('Booking change detected:', payload);
+          loadBookings();
+        }
+      )
+      .subscribe();
+
+    // Listen to pending_refunds for refund status updates
+    const refundsChannel = supabase
+      .channel('user-refunds-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'pending_refunds',
+        },
+        (payload) => {
+          console.log('Refund change detected:', payload);
+          loadBookings();
+        }
+      )
+      .subscribe();
+
+    // Listen to slots for slot status changes (in case slot gets cancelled by admin)
+    const slotsChannel = supabase
+      .channel('user-slots-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'slots',
+        },
+        (payload) => {
+          console.log('Slot change detected:', payload);
+          loadBookings();
+        }
+      )
+      .subscribe();
+
+    // Cleanup subscriptions on unmount
+    return () => {
+      supabase.removeChannel(bookingsChannel);
+      supabase.removeChannel(refundsChannel);
+      supabase.removeChannel(slotsChannel);
+    };
   }, []);
 
   const loadBookings = async () => {

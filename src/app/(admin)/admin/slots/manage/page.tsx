@@ -27,6 +27,45 @@ export default function ManageSlotsPage() {
 
   useEffect(() => {
     checkAdminAndLoadSlots();
+
+    // Set up real-time subscription for slot and booking updates
+    const slotsChannel = supabase
+      .channel('admin-slots-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'slots',
+        },
+        (payload) => {
+          console.log('Admin: Slot change detected:', payload);
+          loadSlots();
+        }
+      )
+      .subscribe();
+
+    const bookingsChannel = supabase
+      .channel('admin-bookings-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'bookings',
+        },
+        (payload) => {
+          console.log('Admin: Booking change detected:', payload);
+          loadSlots();
+        }
+      )
+      .subscribe();
+
+    // Cleanup subscriptions on unmount
+    return () => {
+      supabase.removeChannel(slotsChannel);
+      supabase.removeChannel(bookingsChannel);
+    };
   }, [filter, sportFilter]);
 
   const checkAdminAndLoadSlots = async () => {
