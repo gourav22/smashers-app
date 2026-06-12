@@ -70,8 +70,8 @@ export default function Home() {
               <div className="bg-blue-100 w-16 h-16 rounded-full flex items-center justify-center text-2xl font-bold text-blue-600 mx-auto mb-4">
                 1
               </div>
-              <h4 className="font-semibold text-gray-900 mb-2">Register</h4>
-              <p className="text-sm text-gray-600">Create your account and verify email</p>
+              <h4 className="font-semibold text-gray-900 mb-2">Sign Up</h4>
+              <p className="text-sm text-gray-600">Quick signup with Google, Facebook, or GitHub</p>
             </div>
 
             <div className="text-center">
