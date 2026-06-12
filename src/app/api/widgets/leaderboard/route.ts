@@ -46,12 +46,12 @@ export async function GET(request: NextRequest) {
       .single();
 
     let userRank = null;
-    if (userProfile && userProfile[gamesColumn] >= 3) {
+    if (userProfile && (userProfile as any)[gamesColumn] >= 3) {
       const { count } = await supabase
         .from('users')
         .select('*', { count: 'exact', head: true })
         .gte(gamesColumn, 3)
-        .gt(eloColumn, userProfile[eloColumn]);
+        .gt(eloColumn, (userProfile as any)[eloColumn]);
 
       userRank = (count || 0) + 1;
     }
@@ -62,17 +62,17 @@ export async function GET(request: NextRequest) {
         rank: index + 1,
         id: player.id,
         name: player.name,
-        elo: player[eloColumn],
-        grade: player[gradeColumn],
-        games: player[gamesColumn],
+        elo: (player as any)[eloColumn],
+        grade: (player as any)[gradeColumn],
+        games: (player as any)[gamesColumn],
         isCurrentUser: player.id === user.id,
       })),
       currentUser: userProfile ? {
         rank: userRank,
         name: userProfile.name,
-        elo: userProfile[eloColumn],
-        grade: userProfile[gradeColumn],
-        games: userProfile[gamesColumn],
+        elo: (userProfile as any)[eloColumn],
+        grade: (userProfile as any)[gradeColumn],
+        games: (userProfile as any)[gamesColumn],
       } : null,
       lastUpdated: new Date().toISOString(),
     };
