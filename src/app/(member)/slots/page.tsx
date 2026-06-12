@@ -75,7 +75,7 @@ export default function SlotsPage() {
     setBooking(slotId);
 
     try {
-      const bookingCost = parseInt(process.env.NEXT_PUBLIC_BOOKING_COST || '4');
+      const bookingCost = 4; // Fixed booking cost
 
       if (userBalance < bookingCost) {
         alert(`Insufficient balance! You need €${bookingCost} to book a slot.`);
@@ -142,7 +142,7 @@ export default function SlotsPage() {
             <div className="text-right">
               <p className="text-sm text-gray-600">Games Available</p>
               <p className="text-2xl font-bold text-green-600">
-                {Math.floor(userBalance / parseInt(process.env.NEXT_PUBLIC_BOOKING_COST || '4'))}
+                {Math.floor(userBalance / 4)}
               </p>
             </div>
           </div>
@@ -278,7 +278,7 @@ export default function SlotsPage() {
                         disabled={booking === slot.id || userBalance < 4}
                         className="w-full bg-blue-600 text-white py-2 rounded-lg font-semibold hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition"
                       >
-                        {booking === slot.id ? 'Booking...' : `Book for €${process.env.NEXT_PUBLIC_BOOKING_COST || 4}`}
+                        {booking === slot.id ? 'Booking...' : 'Book for €4'}
                       </button>
                     )}
                   </div>

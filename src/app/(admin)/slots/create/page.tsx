@@ -286,7 +286,7 @@ export default function CreateSlotPage() {
                   onChange={(e) => setFormData({ ...formData, date: e.target.value })}
                   required
                   min={new Date().toISOString().split('T')[0]}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900"
                 />
               </div>
 
@@ -301,7 +301,7 @@ export default function CreateSlotPage() {
                   value={formData.time}
                   onChange={(e) => setFormData({ ...formData, time: e.target.value })}
                   required
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900"
                 />
               </div>
 
@@ -317,7 +317,7 @@ export default function CreateSlotPage() {
                   onChange={(e) => setFormData({ ...formData, location: e.target.value })}
                   required
                   placeholder="e.g., Main Court, Field #1"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 placeholder:text-gray-400"
                 />
               </div>
 
@@ -334,7 +334,7 @@ export default function CreateSlotPage() {
                   value={formData.totalSpots}
                   onChange={(e) => setFormData({ ...formData, totalSpots: e.target.value })}
                   required
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900"
                 />
                 <p className="text-xs text-gray-500 mt-1">
                   Recommended: 4 for badminton doubles, 10 for cricket
@@ -394,7 +394,7 @@ export default function CreateSlotPage() {
                     onChange={(e) => setBulkData({ ...bulkData, startDate: e.target.value })}
                     required
                     min={new Date().toISOString().split('T')[0]}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900"
                   />
                 </div>
                 <div>
@@ -408,7 +408,7 @@ export default function CreateSlotPage() {
                     onChange={(e) => setBulkData({ ...bulkData, endDate: e.target.value })}
                     required
                     min={bulkData.startDate || new Date().toISOString().split('T')[0]}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900"
                   />
                 </div>
               </div>
@@ -450,7 +450,7 @@ export default function CreateSlotPage() {
                   value={bulkData.time}
                   onChange={(e) => setBulkData({ ...bulkData, time: e.target.value })}
                   required
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900"
                 />
               </div>
 
@@ -466,7 +466,7 @@ export default function CreateSlotPage() {
                   onChange={(e) => setBulkData({ ...bulkData, location: e.target.value })}
                   required
                   placeholder="e.g., Main Court, Field #1"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 placeholder:text-gray-400"
                 />
               </div>
 
@@ -483,7 +483,7 @@ export default function CreateSlotPage() {
                   value={bulkData.totalSpots}
                   onChange={(e) => setBulkData({ ...bulkData, totalSpots: e.target.value })}
                   required
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900"
                 />
               </div>
 
