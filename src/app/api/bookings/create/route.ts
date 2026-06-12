@@ -219,29 +219,56 @@ export async function POST(request: Request) {
       console.error('Error creating transaction:', transactionError);
     }
 
-    // 5. Process any pending refunds ONLY if slot is now full
+    // 5. Process pending refunds ONE AT A TIME (FIFO)
+    // Only process AFTER slot reaches original capacity (before cancellations)
     console.log('💳 Checking for pending refunds...');
 
-    // Check if slot is now full after this booking
-    const isSlotNowFull = updatedBookedIds.length >= slot.total_spots;
+    // Count how many pending refunds exist for this slot
+    const { data: allPendingRefunds, count: pendingCount } = await supabase
+      .from('pending_refunds')
+      .select('*', { count: 'exact' })
+      .eq('slot_id', slotId)
+      .eq('status', 'pending');
 
-    if (!isSlotNowFull) {
-      console.log(`⏳ Slot not full yet (${updatedBookedIds.length}/${slot.total_spots}) - refunds still pending`);
-    }
+    const numberOfPendingRefunds = pendingCount || 0;
 
-    if (isSlotNowFull) {
-      console.log(`✅ Slot is now FULL (${updatedBookedIds.length}/${slot.total_spots}) - processing pending refunds...`);
+    // Calculate minimum bookings needed before refunds start
+    // Example: 10 total, 3 cancelled = need to reach 7/10 before any refunds
+    // Then: 8/10 → Refund 1st person, 9/10 → Refund 2nd, 10/10 → Refund 3rd
+    const minimumBookingsBeforeRefunds = slot.total_spots - numberOfPendingRefunds;
 
+    console.log(`📊 Slot analysis: ${updatedBookedIds.length}/${slot.total_spots} booked, ${numberOfPendingRefunds} pending refunds, minimum before refunds: ${minimumBookingsBeforeRefunds}`);
+
+    // Only process refunds AFTER we've filled the gap left by cancellations
+    // Example: Had 5/10 booked, 3 cancelled → 2/10
+    // Need bookings 3-7 to fill gap, then 8+ trigger refunds
+    const hasReachedMinimum = updatedBookedIds.length > minimumBookingsBeforeRefunds;
+
+    if (hasReachedMinimum && numberOfPendingRefunds > 0) {
+      // Get the oldest pending refund (FIFO)
       const { data: pendingRefunds } = await supabase
         .from('pending_refunds')
         .select('*')
         .eq('slot_id', slotId)
-        .eq('status', 'pending');
+        .eq('status', 'pending')
+        .order('created_at', { ascending: true }) // Oldest first
+        .limit(1);
 
-      if (pendingRefunds && pendingRefunds.length > 0) {
-        console.log(`Found ${pendingRefunds.length} pending refund(s) to process...`);
+      const shouldProcessRefund = pendingRefunds && pendingRefunds.length > 0;
 
-      for (const refund of pendingRefunds) {
+      if (shouldProcessRefund) {
+        const refund = pendingRefunds[0];
+        console.log(`✅ Processing refund for user ${refund.user_id} (bookings ${updatedBookedIds.length} exceeded minimum ${minimumBookingsBeforeRefunds})`);
+
+        // Get user's current balance
+      const { data: refundUser } = await supabase
+        .from('users')
+        .select('balance')
+        .eq('id', refund.user_id)
+        .single();
+
+      if (refundUser) {
+        const refundBalance = refundUser.balance + refund.amount;
         // Get user's current balance
         const { data: refundUser } = await supabase
           .from('users')
@@ -249,57 +276,56 @@ export async function POST(request: Request) {
           .eq('id', refund.user_id)
           .single();
 
-        if (refundUser) {
-          const refundBalance = refundUser.balance + refund.amount;
+        // Update balance
+        await supabase
+          .from('users')
+          .update({ balance: refundBalance })
+          .eq('id', refund.user_id);
 
-          // Update balance
-          await supabase
-            .from('users')
-            .update({ balance: refundBalance })
-            .eq('id', refund.user_id);
+        // Create transaction record
+        await supabase.from('transactions').insert({
+          user_id: refund.user_id,
+          type: 'refund',
+          amount: refund.amount,
+          balance_after: refundBalance,
+          metadata: {
+            reason: 'Cancellation refund - replacement found',
+            slot_id: slotId,
+            replacement_user_id: userId,
+          },
+        });
 
-          // Create transaction record
-          await supabase.from('transactions').insert({
-            user_id: refund.user_id,
-            type: 'refund',
-            amount: refund.amount,
-            balance_after: refundBalance,
-            metadata: {
-              reason: 'Cancellation refund - replacement found',
-              slot_id: slotId,
-              replacement_user_id: userId,
-            },
-          });
+        // Mark refund as processed
+        await supabase
+          .from('pending_refunds')
+          .update({
+            status: 'processed',
+            processed_at: new Date().toISOString(),
+          })
+          .eq('id', refund.id);
 
-          // Mark refund as processed
-          await supabase
-            .from('pending_refunds')
-            .update({
-              status: 'processed',
-              processed_at: new Date().toISOString(),
-            })
-            .eq('id', refund.id);
+        // Notify user about refund (in-app)
+        await supabase.from('notifications').insert({
+          user_id: refund.user_id,
+          type: 'refund',
+          title: 'Refund Processed',
+          message: `€${refund.amount.toFixed(2)} has been refunded. A replacement was found for your cancelled booking.`,
+        });
 
-          // Notify user about refund (in-app)
-          await supabase.from('notifications').insert({
-            user_id: refund.user_id,
-            type: 'refund',
-            title: 'Refund Processed',
-            message: `€${refund.amount.toFixed(2)} has been refunded. A replacement was found for your cancelled booking.`,
-          });
+        // Send push notification
+        await sendPushNotification(refund.user_id, {
+          title: '💰 Refund Processed',
+          body: `€${refund.amount} refunded - replacement found!`,
+          url: '/bookings',
+        });
 
-          // Send push notification
-          await sendPushNotification(refund.user_id, {
-            title: '💰 Refund Processed',
-            body: `€${refund.amount} refunded - replacement found!`,
-            url: '/bookings',
-          });
-
-          console.log(`✅ Processed refund for user ${refund.user_id}`);
-        }
+        console.log(`✅ Processed refund for user ${refund.user_id}`);
       }
+    } else {
+      if (numberOfPendingRefunds > 0) {
+        console.log(`⏳ Still filling gap from cancellations. Current: ${updatedBookedIds.length}/${slot.total_spots}, need to reach ${minimumBookingsBeforeRefunds + 1} before refunds start.`);
       } else {
-        console.log('No pending refunds to process');
+        console.log(`No pending refunds for this slot`);
       }
     }
 

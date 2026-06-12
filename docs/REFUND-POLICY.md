@@ -4,20 +4,32 @@
 
 When a member cancels a booking, the refund is **NOT processed immediately**. Instead, it's held in a "pending" state until one of two things happens:
 
-### ✅ Refund Processed (Slot Becomes Full Again)
-If the slot becomes **completely full** again **before game time**:
-1. All empty spots must be filled
-2. Once the last spot is filled, ALL pending refunds for that slot are processed
-3. All original members get their refunds (€4 each)
-4. Push notifications sent to all refunded members
-   - "💰 Refund Processed - slot is full again!"
+### ✅ Refund Processed (FIFO After Gap Filled)
+Refunds are processed **one at a time** in **FIFO order** (First In, First Out), but **ONLY AFTER** the slot fills the gap left by cancellations:
 
-**Example:**
+**Example (User's Scenario):**
 - Slot has 10 total spots
-- 8 people booked (8/10)
-- 2 people cancel → 6/10 booked, 2 pending refunds
-- 4 new people book → 10/10 FULL
-- **Only then** → Both original members get refunded
+- 5 people booked (A, B, C, D, E) ← **5/10 original**
+- Person A cancels → 4/10 (1 pending refund)
+- Person B cancels → 3/10 (2 pending refunds)  
+- Person C cancels → 2/10 (3 pending refunds)
+
+**Gap to fill: 10 - 3 cancellations = 7 bookings needed before refunds start**
+
+Bookings come in:
+- F books → 3/10 (filling gap, no refund)
+- G books → 4/10 (filling gap, no refund)
+- H books → 5/10 (filling gap, no refund)
+- I books → 6/10 (filling gap, no refund)
+- J books → 7/10 (gap filled, no refund yet)
+- K books → **8/10** → **Refund A** ✅ (1st to cancel)
+- L books → **9/10** → **Refund B** ✅ (2nd to cancel)
+- Game time at 9/10 → C forfeits (no 10th booking)
+
+**Formula:**
+- Minimum before refunds = total_spots - number_of_cancellations
+- Refunds start at: minimum + 1
+- Each booking after minimum processes ONE refund (FIFO)
 
 ### ❌ Refund Forfeited (No Replacement)
 If **NO ONE books the slot before game time**:
@@ -28,24 +40,30 @@ If **NO ONE books the slot before game time**:
 ## Timeline
 
 ```
-User cancels booking
+5/10 booked originally (A, B, C, D, E)
         ↓
-Refund status: PENDING
+A cancels → 4/10 (A pending)
+B cancels → 3/10 (A, B pending)
+C cancels → 2/10 (A, B, C pending)
         ↓
-   (waiting...)
+Gap to fill = 10 - 3 = 7
+   (waiting to reach 7/10...)
         ↓
-  ┌─────┴─────────┐
-  ↓               ↓
-Slot becomes    Game time
-FULL again      passes
-  ↓               ↓
-REFUND        NO REFUND
+F books → 3/10 (filling gap - no refund)
+G books → 4/10 (filling gap - no refund)
+H books → 5/10 (filling gap - no refund)
+I books → 6/10 (filling gap - no refund)
+J books → 7/10 (gap filled - no refund yet)
+K books → 8/10 → Refund A ✅ (1st to cancel)
+L books → 9/10 → Refund B ✅ (2nd to cancel)
+        ↓
+Game time at 9/10 → C forfeits ❌ (no 10th booking)
 
-Example:
-- 10 total spots
-- 8 booked, 2 cancel → 6/10 (2 pending refunds)
-- Need 4 more bookings to reach 10/10
-- Once 10/10 → Process both refunds
+Key Formula:
+- Minimum before refunds = total_spots - pending_refunds_count
+- Example: 10 - 3 = 7 minimum
+- Refunds start at: 7 + 1 = 8/10
+- Each booking after 7 processes ONE refund (FIFO)
 ```
 
 ## Why This Policy?
