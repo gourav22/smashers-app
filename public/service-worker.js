@@ -13,8 +13,7 @@ const STATIC_ASSETS = [
   '/matches',
   '/settings',
   '/manifest.json',
-  '/icons/icon-192x192.png',
-  '/icons/icon-512x512.png',
+  '/icons/icon.svg',
 ];
 
 // Install event - cache static assets
@@ -143,8 +142,8 @@ self.addEventListener('push', (event) => {
   const title = notificationData.title || 'Smashers Club';
   const options = {
     body: notificationData.body || 'You have a new notification',
-    icon: notificationData.icon || '/icons/icon-192x192.png',
-    badge: notificationData.badge || '/icons/icon-96x96.png',
+    icon: notificationData.icon || '/icons/icon.svg',
+    badge: notificationData.badge || '/icons/icon.svg',
     tag: notificationData.tag || 'default',
     data: notificationData.data || {},
     actions: notificationData.actions || [],
