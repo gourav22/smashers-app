@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase/client';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { InstallButton } from '@/components/InstallButton';
 import { NotificationSettings } from '@/components/NotificationSettings';
@@ -10,7 +10,6 @@ import PhoneInput from '@/components/PhoneInput';
 
 export default function SettingsPage() {
   const router = useRouter();
-  const searchParams = useSearchParams();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [user, setUser] = useState<any>(null);
@@ -20,12 +19,13 @@ export default function SettingsPage() {
 
   useEffect(() => {
     loadUser();
-    // Get message from query params
-    const msg = searchParams.get('message');
+
+    const params = new URLSearchParams(window.location.search);
+    const msg = params.get('message');
     if (msg) {
-      setMessage(decodeURIComponent(msg));
+      setMessage(msg);
     }
-  }, [searchParams]);
+  }, []);
 
   const loadUser = async () => {
     try {
