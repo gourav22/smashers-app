@@ -43,6 +43,7 @@ export default function DashboardPage() {
   const [user, setUser] = useState<UserProfile | null>(null);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showTransactions, setShowTransactions] = useState(false);
 
   useEffect(() => {
     loadUser();
@@ -339,52 +340,59 @@ export default function DashboardPage() {
               >
                 Top Up Balance
               </Link>
+
+              <button
+                onClick={() => setShowTransactions(!showTransactions)}
+                className="w-full bg-gray-100 text-gray-700 text-center py-2 rounded-lg font-medium hover:bg-gray-200 transition text-sm"
+              >
+                {showTransactions ? '▲ Hide Transaction History' : '💰 View Transaction History'}
+              </button>
+
               {user.balance < 4 && (
                 <p className="text-xs text-red-600">
                   ⚠️ Low balance! Top up to book slots.
                 </p>
               )}
 
-              {/* Recent Transactions */}
-              <div className="mt-6 border-t pt-4">
-                <h4 className="text-sm font-semibold text-gray-700 mb-3">Recent Transactions</h4>
-                {transactions.length === 0 ? (
-                  <p className="text-xs text-gray-500">No transactions yet</p>
-                ) : (
-                  <div className="space-y-2">
-                    {transactions.map((txn) => (
-                      <div key={txn.id} className="flex justify-between items-center text-xs">
-                        <div className="flex items-center gap-2">
-                          <span className={`px-2 py-0.5 rounded text-xs font-semibold ${
-                            txn.type === 'topup' ? 'bg-green-100 text-green-800' :
-                            txn.type === 'refund' ? 'bg-blue-100 text-blue-800' :
-                            txn.type === 'booking' ? 'bg-red-100 text-red-800' :
-                            'bg-gray-100 text-gray-800'
+              {/* Recent Transactions (Collapsible) */}
+              {showTransactions && (
+                <div className="mt-4 border-t pt-4">
+                  <h4 className="text-sm font-semibold text-gray-700 mb-3">Recent Transactions</h4>
+                  {transactions.length === 0 ? (
+                    <p className="text-xs text-gray-500">No transactions yet</p>
+                  ) : (
+                    <div className="space-y-2">
+                      {transactions.map((txn) => (
+                        <div key={txn.id} className="flex justify-between items-center text-xs">
+                          <div className="flex items-center gap-2">
+                            <span className={`px-2 py-0.5 rounded text-xs font-semibold ${
+                              txn.type === 'topup' ? 'bg-green-100 text-green-800' :
+                              txn.type === 'refund' ? 'bg-blue-100 text-blue-800' :
+                              txn.type === 'booking' ? 'bg-red-100 text-red-800' :
+                              'bg-gray-100 text-gray-800'
+                            }`}>
+                              {txn.type}
+                            </span>
+                            <span className="text-gray-600">
+                              {new Date(txn.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                            </span>
+                          </div>
+                          <span className={`font-semibold ${
+                            txn.amount > 0 ? 'text-green-600' : 'text-red-600'
                           }`}>
-                            {txn.type}
-                          </span>
-                          <span className="text-gray-600">
-                            {new Date(txn.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                            {txn.amount > 0 ? '+' : ''}€{Math.abs(txn.amount).toFixed(2)}
                           </span>
                         </div>
-                        <span className={`font-semibold ${
-                          txn.amount > 0 ? 'text-green-600' : 'text-red-600'
-                        }`}>
-                          {txn.amount > 0 ? '+' : ''}€{Math.abs(txn.amount).toFixed(2)}
-                        </span>
-                      </div>
-                    ))}
-                    {transactions.length >= 10 && (
-                      <Link
-                        href="/bookings?tab=transactions"
-                        className="block text-center text-xs text-blue-600 hover:text-blue-700 mt-2"
-                      >
-                        View All Transactions →
-                      </Link>
-                    )}
-                  </div>
-                )}
-              </div>
+                      ))}
+                      {transactions.length >= 10 && (
+                        <p className="text-center text-xs text-gray-500 mt-2">
+                          Showing last 10 transactions
+                        </p>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           </motion.div>
         </div>
