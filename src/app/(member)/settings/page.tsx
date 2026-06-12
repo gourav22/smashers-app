@@ -5,6 +5,7 @@ import { supabase } from '@/lib/supabase/client';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { InstallButton } from '@/components/InstallButton';
+import { NotificationSettings } from '@/components/NotificationSettings';
 
 export default function SettingsPage() {
   const router = useRouter();
@@ -126,6 +127,13 @@ export default function SettingsPage() {
             </div>
           </div>
         </div>
+
+        {/* Push Notifications Section */}
+        {user && (
+          <div className="mb-6">
+            <NotificationSettings userId={user.id} />
+          </div>
+        )}
 
         <div className="bg-white rounded-lg shadow p-6">
           <h2 className="text-xl font-semibold text-gray-900 mb-6">Sports Preferences</h2>
