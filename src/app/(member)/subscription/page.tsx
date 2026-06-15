@@ -17,6 +17,8 @@ interface SubscriptionTemplate {
   price_per_week: number;
   available_durations: number[];
   description: string;
+  period_start_date?: string | null;
+  period_end_date?: string | null;
 }
 
 interface Subscription {
@@ -330,6 +332,13 @@ export default function SubscriptionPage() {
 
                       <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
                         📍 {template.location}
+                      </p>
+
+                      <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
+                        📅{' '}
+                        {template.period_start_date && template.period_end_date
+                          ? `${new Date(template.period_start_date).toLocaleDateString()} - ${new Date(template.period_end_date).toLocaleDateString()}`
+                          : 'Ongoing availability'}
                       </p>
 
                       {template.description && (

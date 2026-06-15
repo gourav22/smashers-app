@@ -199,7 +199,7 @@ export default function MembersPage() {
           <div className="flex justify-between items-center">
             <h1 className="text-2xl font-bold text-gray-900">Member Management</h1>
             <Link href="/dashboard" className="text-blue-600 hover:text-blue-700">
-              ← Back to Dashboard
+              Home
             </Link>
           </div>
         </div>

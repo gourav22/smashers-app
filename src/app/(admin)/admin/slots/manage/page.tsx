@@ -17,6 +17,20 @@ interface Slot {
   created_at: string;
 }
 
+interface SlotBookingMember {
+  id: string;
+  slot_id: string;
+  user_id: string;
+  status: 'confirmed' | 'waitlist' | 'cancelled';
+  created_at: string;
+  cancelled_at?: string | null;
+  users: {
+    name: string;
+    email: string;
+    phone?: string | null;
+  }[] | null;
+}
+
 export default function ManageSlotsPage() {
   const router = useRouter();
   const [slots, setSlots] = useState<Slot[]>([]);
@@ -24,6 +38,8 @@ export default function ManageSlotsPage() {
   const [deleting, setDeleting] = useState<string | null>(null);
   const [filter, setFilter] = useState<'all' | 'upcoming' | 'past'>('upcoming');
   const [sportFilter, setSportFilter] = useState<'all' | 'badminton' | 'cricket'>('all');
+  const [slotBookingsMap, setSlotBookingsMap] = useState<Record<string, SlotBookingMember[]>>({});
+  const [expandedSlotId, setExpandedSlotId] = useState<string | null>(null);
 
   useEffect(() => {
     checkAdminAndLoadSlots();
@@ -123,12 +139,55 @@ export default function ManageSlotsPage() {
 
       if (error) throw error;
 
-      setSlots(data || []);
+      const loadedSlots = data || [];
+      setSlots(loadedSlots);
+
+      const slotIds = loadedSlots.map((slot) => slot.id);
+      if (slotIds.length === 0) {
+        setSlotBookingsMap({});
+        return;
+      }
+
+      const { data: bookingsData, error: bookingsError } = await supabase
+        .from('bookings')
+        .select('id, slot_id, user_id, status, created_at, cancelled_at, users(name, email, phone)')
+        .in('slot_id', slotIds)
+        .in('status', ['confirmed', 'waitlist', 'cancelled'])
+        .order('created_at', { ascending: true });
+
+      if (bookingsError) {
+        console.error('Error loading booking members:', bookingsError);
+        setSlotBookingsMap({});
+        return;
+      }
+
+      const grouped = (bookingsData || []).reduce((acc, booking) => {
+        if (!acc[booking.slot_id]) {
+          acc[booking.slot_id] = [];
+        }
+        acc[booking.slot_id].push(booking as SlotBookingMember);
+        return acc;
+      }, {} as Record<string, SlotBookingMember[]>);
+
+      setSlotBookingsMap(grouped);
     } catch (error) {
       console.error('Error loading slots:', error);
     } finally {
       setLoading(false);
     }
+  };
+
+  const getBookingStatusCounts = (slotId: string) => {
+    const bookings = slotBookingsMap[slotId] || [];
+    return {
+      confirmed: bookings.filter((b) => b.status === 'confirmed').length,
+      waitlist: bookings.filter((b) => b.status === 'waitlist').length,
+      cancelled: bookings.filter((b) => b.status === 'cancelled').length,
+    };
+  };
+
+  const toggleSlotDetails = (slotId: string) => {
+    setExpandedSlotId((prev) => (prev === slotId ? null : slotId));
   };
 
   const handleDeleteSlot = async (slot: Slot) => {
@@ -240,7 +299,7 @@ export default function ManageSlotsPage() {
                 ➕ Create New Slot
               </Link>
               <Link href="/dashboard" className="text-blue-600 hover:text-blue-700">
-                ← Back to Dashboard
+                Home
               </Link>
             </div>
           </div>
@@ -372,11 +431,21 @@ export default function ManageSlotsPage() {
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Location</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Capacity</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Members</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
-                  {filteredSlots.map((slot) => (
+                  {filteredSlots.map((slot) => {
+                    const statusCounts = getBookingStatusCounts(slot.id);
+                    const slotBookings = slotBookingsMap[slot.id] || [];
+                    const confirmedBookings = slotBookings.filter((b) => b.status === 'confirmed');
+                    const waitlistBookings = slotBookings.filter((b) => b.status === 'waitlist');
+                    const cancelledBookings = slotBookings.filter((b) => b.status === 'cancelled');
+                    const isExpanded = expandedSlotId === slot.id;
+
+                    return (
+                    <>
                     <tr key={slot.id} className="hover:bg-gray-50">
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                         {new Date(slot.date).toLocaleDateString('en-US', {
@@ -415,8 +484,21 @@ export default function ManageSlotsPage() {
                           {slot.status.toUpperCase()}
                         </span>
                       </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        <div className="flex items-center gap-2">
+                          <span className="text-green-700">B: {statusCounts.confirmed}</span>
+                          <span className="text-amber-700">W: {statusCounts.waitlist}</span>
+                          <span className="text-red-700">C: {statusCounts.cancelled}</span>
+                        </div>
+                      </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm">
                         <div className="flex gap-2">
+                          <button
+                            onClick={() => toggleSlotDetails(slot.id)}
+                            className="text-blue-600 hover:text-blue-900 font-medium"
+                          >
+                            {isExpanded ? 'Hide Members' : 'View Members'}
+                          </button>
                           {slot.status === 'cancelled' ? (
                             <button
                               onClick={() => handleReactivateSlot(slot)}
@@ -442,7 +524,83 @@ export default function ManageSlotsPage() {
                         </div>
                       </td>
                     </tr>
-                  ))}
+                    {isExpanded && (
+                      <tr>
+                        <td colSpan={8} className="px-6 py-4 bg-gray-50">
+                          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div className="bg-white border border-green-200 rounded-lg p-4">
+                              <h4 className="font-semibold text-green-800 mb-3">
+                                Confirmed ({confirmedBookings.length})
+                              </h4>
+                              {confirmedBookings.length === 0 ? (
+                                <p className="text-sm text-gray-500">No confirmed bookings.</p>
+                              ) : (
+                                <ul className="space-y-2">
+                                  {confirmedBookings.map((booking) => (
+                                    <li key={booking.id} className="text-sm text-gray-800">
+                                      <div className="font-medium">{booking.users?.[0]?.name || 'Unknown User'}</div>
+                                      <div className="text-gray-600">{booking.users?.[0]?.email || 'No email'}</div>
+                                      {booking.users?.[0]?.phone && (
+                                        <div className="text-gray-600">{booking.users[0].phone}</div>
+                                      )}
+                                    </li>
+                                  ))}
+                                </ul>
+                              )}
+                            </div>
+
+                            <div className="bg-white border border-amber-200 rounded-lg p-4">
+                              <h4 className="font-semibold text-amber-800 mb-3">
+                                Waitlist ({waitlistBookings.length})
+                              </h4>
+                              {waitlistBookings.length === 0 ? (
+                                <p className="text-sm text-gray-500">No waitlisted members.</p>
+                              ) : (
+                                <ul className="space-y-2">
+                                  {waitlistBookings.map((booking) => (
+                                    <li key={booking.id} className="text-sm text-gray-800">
+                                      <div className="font-medium">{booking.users?.[0]?.name || 'Unknown User'}</div>
+                                      <div className="text-gray-600">{booking.users?.[0]?.email || 'No email'}</div>
+                                      {booking.users?.[0]?.phone && (
+                                        <div className="text-gray-600">{booking.users[0].phone}</div>
+                                      )}
+                                    </li>
+                                  ))}
+                                </ul>
+                              )}
+                            </div>
+
+                            <div className="bg-white border border-red-200 rounded-lg p-4">
+                              <h4 className="font-semibold text-red-800 mb-3">
+                                Cancelled ({cancelledBookings.length})
+                              </h4>
+                              {cancelledBookings.length === 0 ? (
+                                <p className="text-sm text-gray-500">No cancellations.</p>
+                              ) : (
+                                <ul className="space-y-2">
+                                  {cancelledBookings.map((booking) => (
+                                    <li key={booking.id} className="text-sm text-gray-800">
+                                      <div className="font-medium">{booking.users?.[0]?.name || 'Unknown User'}</div>
+                                      <div className="text-gray-600">{booking.users?.[0]?.email || 'No email'}</div>
+                                      {booking.users?.[0]?.phone && (
+                                        <div className="text-gray-600">{booking.users[0].phone}</div>
+                                      )}
+                                      {booking.cancelled_at && (
+                                        <div className="text-xs text-gray-500">
+                                          Cancelled: {new Date(booking.cancelled_at).toLocaleString()}
+                                        </div>
+                                      )}
+                                    </li>
+                                  ))}
+                                </ul>
+                              )}
+                            </div>
+                          </div>
+                        </td>
+                      </tr>
+                    )}
+                    </>
+                  );})}
                 </tbody>
               </table>
             </div>

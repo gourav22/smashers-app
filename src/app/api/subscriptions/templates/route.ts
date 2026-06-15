@@ -6,6 +6,8 @@ import { NextRequest, NextResponse } from 'next/server';
 export async function GET(request: NextRequest) {
   try {
     const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL || "", process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "");
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
 
     // Get available templates
     const { data: templates, error } = await supabase
@@ -24,7 +26,13 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    return NextResponse.json({ templates: templates || [] });
+    const activeTemplates = (templates || []).filter((template) => {
+      const withinStart = !template.period_start_date || new Date(template.period_start_date) <= today;
+      const withinEnd = !template.period_end_date || new Date(template.period_end_date) >= today;
+      return withinStart && withinEnd;
+    });
+
+    return NextResponse.json({ templates: activeTemplates });
   } catch (error) {
     console.error('Error in templates endpoint:', error);
     return NextResponse.json(
@@ -74,13 +82,31 @@ export async function POST(request: NextRequest) {
       maxSubscribers,
       pricePerWeek,
       availableDurations,
-      description
+      description,
+      periodStartDate,
+      periodEndDate,
     } = await request.json();
 
     // Validate inputs
     if (!sport || dayOfWeek === undefined || !time || !location) {
       return NextResponse.json(
         { error: 'Missing required fields' },
+        { status: 400 }
+      );
+    }
+
+    // Period dates must be both provided or both null (per schema constraint)
+    if ((periodStartDate && !periodEndDate) || (!periodStartDate && periodEndDate)) {
+      return NextResponse.json(
+        { error: 'Both period start and end dates must be provided together, or both omitted' },
+        { status: 400 }
+      );
+    }
+
+    // If both dates provided, validate order
+    if (periodStartDate && periodEndDate && new Date(periodEndDate) < new Date(periodStartDate)) {
+      return NextResponse.json(
+        { error: 'Period end date must be on or after the start date' },
         { status: 400 }
       );
     }
@@ -97,6 +123,8 @@ export async function POST(request: NextRequest) {
         price_per_week: pricePerWeek || 4,
         available_durations: availableDurations || [3, 6, 12],
         description,
+        period_start_date: periodStartDate || null,
+        period_end_date: periodEndDate || null,
         created_by: user.id,
         status: 'active',
       })

@@ -99,13 +99,6 @@ export async function POST(request: Request) {
       );
     }
 
-    if (slot.booked_user_ids.includes(userId)) {
-      return NextResponse.json(
-        { error: 'You have already booked this slot' },
-        { status: 400 }
-      );
-    }
-
     // Check if booking already exists (excluding cancelled bookings)
     console.log('🔍 Checking for existing active booking...');
     const { data: existingBooking } = await supabase
@@ -256,16 +249,19 @@ export async function POST(request: Request) {
 
     const numberOfPendingRefunds = pendingCount || 0;
 
-    // Calculate minimum bookings needed before refunds start
-    // Example: 10 total, 3 cancelled = need to reach 7/10 before any refunds
-    // Then: 8/10 → Refund 1st person, 9/10 → Refund 2nd, 10/10 → Refund 3rd
+    // Refund trigger logic:
+    //   minimum = total_spots - pending_refunds
+    //   refund fires when: current_bookings > minimum
+    //
+    // Scenario A — slot was full (5/5), 2 cancel → 3 booked, 2 pending:
+    //   minimum = 5-2 = 3 → 4th booking triggers refund for 1st cancelled
+    //
+    // Scenario B — slot was not full (4/5), 2 cancel → 2 booked, 2 pending:
+    //   minimum = 5-2 = 3 → 3rd booking: 3>3 false (no refund), 4th booking: 4>3 → refund 1st cancelled
     const minimumBookingsBeforeRefunds = slot.total_spots - numberOfPendingRefunds;
 
-    console.log(`📊 Slot analysis: ${updatedBookedIds.length}/${slot.total_spots} booked, ${numberOfPendingRefunds} pending refunds, minimum before refunds: ${minimumBookingsBeforeRefunds}`);
+    console.log(`📊 Slot analysis: ${updatedBookedIds.length}/${slot.total_spots} booked, ${numberOfPendingRefunds} pending refunds, refund fires when > ${minimumBookingsBeforeRefunds}`);
 
-    // Only process refunds AFTER we've filled the gap left by cancellations
-    // Example: Had 5/10 booked, 3 cancelled → 2/10
-    // Need bookings 3-7 to fill gap, then 8+ trigger refunds
     const hasReachedMinimum = updatedBookedIds.length > minimumBookingsBeforeRefunds;
 
     if (hasReachedMinimum && numberOfPendingRefunds > 0) {

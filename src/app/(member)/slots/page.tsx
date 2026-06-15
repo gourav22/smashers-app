@@ -20,6 +20,7 @@ interface Slot {
 export default function SlotsPage() {
   const router = useRouter();
   const [slots, setSlots] = useState<Slot[]>([]);
+  const [confirmedSlotIds, setConfirmedSlotIds] = useState<string[]>([]);
   const [waitlistedSlotIds, setWaitlistedSlotIds] = useState<string[]>([]);
   const [userBalance, setUserBalance] = useState(0);
   const [userId, setUserId] = useState<string | null>(null);
@@ -113,14 +114,22 @@ export default function SlotsPage() {
 
       setSlots(slotsData || []);
 
-      // Track slots where user is already in waitlist
-      const { data: waitlistData } = await supabase
+      // Track slots where user has active booking/waitlist
+      const { data: bookingStates } = await supabase
         .from('bookings')
-        .select('slot_id')
+        .select('slot_id, status')
         .eq('user_id', authData.user.id)
-        .eq('status', 'waitlist');
+        .in('status', ['confirmed', 'waitlist']);
 
-      setWaitlistedSlotIds((waitlistData || []).map((row) => row.slot_id));
+      const confirmed = (bookingStates || [])
+        .filter((row) => row.status === 'confirmed')
+        .map((row) => row.slot_id);
+      const waitlisted = (bookingStates || [])
+        .filter((row) => row.status === 'waitlist')
+        .map((row) => row.slot_id);
+
+      setConfirmedSlotIds(confirmed);
+      setWaitlistedSlotIds(waitlisted);
     } catch (error) {
       console.error('Error loading slots:', error);
     } finally {
@@ -194,7 +203,7 @@ export default function SlotsPage() {
   };
 
   const isSlotBookedByUser = (slot: Slot) => {
-    return userId && slot.booked_user_ids.includes(userId);
+    return confirmedSlotIds.includes(slot.id);
   };
 
   const isSlotWaitlistedByUser = (slot: Slot) => {
@@ -212,31 +221,33 @@ export default function SlotsPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
+      {notification && (
+        <div className="fixed left-1/2 top-4 z-50 w-[calc(100%-1.5rem)] max-w-md -translate-x-1/2 px-1 sm:top-6">
+          <div
+            className={`rounded-xl border px-4 py-3 text-sm font-medium shadow-lg backdrop-blur-sm ${
+              notification.type === 'success'
+                ? 'border-green-200 bg-green-50/95 text-green-800'
+                : 'border-red-200 bg-red-50/95 text-red-800'
+            }`}
+          >
+            {notification.message}
+          </div>
+        </div>
+      )}
+
       {/* Header */}
       <header className="bg-white shadow">
         <div className="max-w-7xl mx-auto px-4 py-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center">
             <h1 className="text-2xl font-bold text-gray-900">Available Slots</h1>
-            <Link href="/dashboard" className="text-blue-600 hover:text-blue-700">
-              ← Back to Dashboard
+            <Link href="/dashboard" className="rounded-lg border border-gray-300 px-3 py-2 text-sm font-semibold text-gray-700 transition hover:bg-gray-100">
+              Home
             </Link>
           </div>
         </div>
       </header>
 
       <main className="max-w-7xl mx-auto px-4 py-8 sm:px-6 lg:px-8">
-        {notification && (
-          <div
-            className={`mb-6 rounded-lg border px-4 py-3 text-sm font-medium ${
-              notification.type === 'success'
-                ? 'border-green-200 bg-green-50 text-green-800'
-                : 'border-red-200 bg-red-50 text-red-800'
-            }`}
-          >
-            {notification.message}
-          </div>
-        )}
-
         {/* Balance Banner */}
         <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
           <div className="flex justify-between items-center">

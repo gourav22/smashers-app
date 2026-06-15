@@ -52,6 +52,20 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Check if template is within available period (using proper date comparison)
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const startsInFuture = template.period_start_date && new Date(template.period_start_date) > today;
+    const endedAlready = template.period_end_date && new Date(template.period_end_date) < today;
+
+    if (startsInFuture || endedAlready) {
+      return NextResponse.json(
+        { error: 'This subscription is not available in the current period' },
+        { status: 400 }
+      );
+    }
+
     if (template.current_subscribers >= template.max_subscribers) {
       return NextResponse.json(
         { error: 'This subscription is full' },

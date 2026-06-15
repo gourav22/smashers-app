@@ -17,9 +17,21 @@ interface Template {
   available_durations: number[];
   description: string;
   status: string;
+  period_start_date: string | null;
+  period_end_date: string | null;
 }
 
 const DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+
+const getDateInputValue = (date: Date) => date.toISOString().split('T')[0];
+
+const getDefaultPeriodStart = () => getDateInputValue(new Date());
+
+const getDefaultPeriodEnd = () => {
+  const date = new Date();
+  date.setMonth(date.getMonth() + 3);
+  return getDateInputValue(date);
+};
 
 export default function SubscriptionTemplatesAdmin() {
   const router = useRouter();
@@ -36,6 +48,8 @@ export default function SubscriptionTemplatesAdmin() {
   const [maxSubscribers, setMaxSubscribers] = useState(10);
   const [pricePerWeek, setPricePerWeek] = useState(4);
   const [description, setDescription] = useState('');
+  const [periodStartDate, setPeriodStartDate] = useState(getDefaultPeriodStart);
+  const [periodEndDate, setPeriodEndDate] = useState(getDefaultPeriodEnd);
 
   useEffect(() => {
     checkAdminAndLoad();
@@ -108,6 +122,8 @@ export default function SubscriptionTemplatesAdmin() {
           pricePerWeek,
           availableDurations: [3, 6, 12],
           description,
+          periodStartDate,
+          periodEndDate,
         }),
       });
 
@@ -136,6 +152,8 @@ export default function SubscriptionTemplatesAdmin() {
     setMaxSubscribers(10);
     setPricePerWeek(4);
     setDescription('');
+    setPeriodStartDate(getDefaultPeriodStart());
+    setPeriodEndDate(getDefaultPeriodEnd());
   };
 
   const handleToggleStatus = async (id: string, currentStatus: string) => {
@@ -272,6 +290,33 @@ export default function SubscriptionTemplatesAdmin() {
                     className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white"
                   />
                 </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Period Start
+                  </label>
+                  <input
+                    type="date"
+                    value={periodStartDate}
+                    onChange={(e) => setPeriodStartDate(e.target.value)}
+                    required
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Period End
+                  </label>
+                  <input
+                    type="date"
+                    value={periodEndDate}
+                    onChange={(e) => setPeriodEndDate(e.target.value)}
+                    min={periodStartDate}
+                    required
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white"
+                  />
+                </div>
               </div>
 
               <div>
@@ -323,6 +368,13 @@ export default function SubscriptionTemplatesAdmin() {
 
                   <p className="text-gray-600 dark:text-gray-300">
                     {DAYS[template.day_of_week]} at {template.slot_time} • 📍 {template.location}
+                  </p>
+
+                  <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                    Period:{' '}
+                    {template.period_start_date && template.period_end_date
+                      ? `${new Date(template.period_start_date).toLocaleDateString()} - ${new Date(template.period_end_date).toLocaleDateString()}`
+                      : 'No defined period'}
                   </p>
 
                   {template.description && (

@@ -165,6 +165,8 @@ CREATE TABLE IF NOT EXISTS public.subscription_templates (
   day_of_week INTEGER NOT NULL CHECK (day_of_week BETWEEN 0 AND 6),
   slot_time TIME NOT NULL,
   location TEXT NOT NULL,
+  period_start_date DATE,
+  period_end_date DATE,
   max_subscribers INTEGER DEFAULT 10 CHECK (max_subscribers > 0),
   current_subscribers INTEGER DEFAULT 0,
   price_per_week NUMERIC(10, 2) DEFAULT 4.00,
@@ -174,6 +176,14 @@ CREATE TABLE IF NOT EXISTS public.subscription_templates (
   created_by UUID REFERENCES public.users(id),
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW(),
+  CONSTRAINT subscription_template_period_check CHECK (
+    (period_start_date IS NULL AND period_end_date IS NULL)
+    OR (
+      period_start_date IS NOT NULL
+      AND period_end_date IS NOT NULL
+      AND period_end_date >= period_start_date
+    )
+  ),
   UNIQUE(sport, day_of_week, slot_time, location)
 );
 

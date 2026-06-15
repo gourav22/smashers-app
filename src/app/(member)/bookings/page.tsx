@@ -271,31 +271,33 @@ export default function BookingsPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
+      {notification && (
+        <div className="fixed left-1/2 top-4 z-50 w-[calc(100%-1.5rem)] max-w-md -translate-x-1/2 px-1 sm:top-6">
+          <div
+            className={`rounded-xl border px-4 py-3 text-sm font-medium shadow-lg backdrop-blur-sm ${
+              notification.type === 'success'
+                ? 'border-green-200 bg-green-50/95 text-green-800'
+                : 'border-red-200 bg-red-50/95 text-red-800'
+            }`}
+          >
+            {notification.message}
+          </div>
+        </div>
+      )}
+
       {/* Header */}
       <header className="bg-white shadow">
         <div className="max-w-7xl mx-auto px-4 py-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center">
             <h1 className="text-2xl font-bold text-gray-900">My Bookings</h1>
-            <Link href="/dashboard" className="text-blue-600 hover:text-blue-700">
-              ← Back to Dashboard
+            <Link href="/dashboard" className="rounded-lg border border-gray-300 px-3 py-2 text-sm font-semibold text-gray-700 transition hover:bg-gray-100">
+              Home
             </Link>
           </div>
         </div>
       </header>
 
       <main className="max-w-7xl mx-auto px-4 py-8 sm:px-6 lg:px-8">
-        {notification && (
-          <div
-            className={`mb-6 rounded-lg border px-4 py-3 text-sm font-medium ${
-              notification.type === 'success'
-                ? 'border-green-200 bg-green-50 text-green-800'
-                : 'border-red-200 bg-red-50 text-red-800'
-            }`}
-          >
-            {notification.message}
-          </div>
-        )}
-
         {/* Confirmed Bookings */}
         <div className="mb-8">
           <h2 className="text-xl font-semibold text-gray-900 mb-4">
